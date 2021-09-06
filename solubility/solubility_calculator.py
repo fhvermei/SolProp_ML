@@ -80,10 +80,10 @@ class SolubilityCalculations:
 
             if calculate_reference_solvents:
                 logger.info('Calculating T-dep logS from reference solubility using H_solu(298K) approximation')
-                self.logs_T_from_aq = self.calculate_logs_t(hsolv_298=self.hsolv_298,
-                                                            hsubl_298=self.hsubl_298,
-                                                            logs_298=self.logs_298_from_ref,
-                                                            temperatures=predictions.data.temperatures)
+                self.logs_T_from_ref = self.calculate_logs_t(hsolv_298=self.hsolv_298,
+                                                             hsubl_298=self.hsubl_298,
+                                                             logs_298=self.logs_298_from_ref,
+                                                             temperatures=predictions.data.temperatures)
 
     def calculate_logs_t(self, hsolv_298=None, hsubl_298=None, logs_298=None, temperatures=None):
         hsolu_298 = hsolv_298 + hsubl_298
