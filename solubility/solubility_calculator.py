@@ -7,23 +7,26 @@ class SolubilityCalculations:
     def __init__(self, predictions: SolubilityPredictions,
                  calculate_aqueous: bool = None,
                  calculate_reference_solvents: bool = None,
-                 calculate_t_dep: bool = None):
+                 calculate_t_dep: bool = None,
+                 logger=None):
 
-        self.gsolv_298 = predictions.gsolv[0] if predictions.gsolv else None  # in kcal/mol
-        self.unc_gsolv_298 = np.sqrt(predictions.gsolv[1]) if predictions.gsolv else None
+        logger.info('Start making logS calculations')
+        self.gsolv_298 = np.array(predictions.gsolv[0]) if predictions.gsolv else None  # in kcal/mol
+        self.unc_gsolv_298 = np.sqrt(np.array(predictions.gsolv[1])) if predictions.gsolv else None
 
         self.logk_298 = self.calculate_logk(gsolv=self.gsolv_298)
         self.unc_logk_298 = self.calculate_logk(gsolv=self.unc_gsolv_298, uncertainty=True)
 
         if calculate_aqueous:
-            self.gsolv_aq_298 = predictions.gsolv_aq[0] if predictions.gsolv_aq else None  # in kcal/mol
-            self.unc_gsolv_aq_298 = np.sqrt(predictions.gsolv_aq[1]) if predictions.gsolv_aq else None
+            logger.info('Calculating logS at 298K from predicted aqueous solubility')
+            self.gsolv_aq_298 = np.array(predictions.gsolv_aq[0]) if predictions.gsolv_aq else None  # in kcal/mol
+            self.unc_gsolv_aq_298 = np.sqrt(np.array(predictions.gsolv_aq[1])) if predictions.gsolv_aq else None
 
             self.logk_aq_298 = self.calculate_logk(gsolv=self.gsolv_aq_298)
             self.unc_logk_aq_298 = self.calculate_logk(gsolv=self.unc_gsolv_aq_298, uncertainty=True)
 
-            self.logs_aq_298 = predictions.saq[0] if predictions.saq else None  # in log10(mol/L)
-            self.unc_logs_aq_298 = np.sqrt(predictions.saq[1]) if predictions.saq else None
+            self.logs_aq_298 = np.array(predictions.saq[0]) if predictions.saq else None  # in log10(mol/L)
+            self.unc_logs_aq_298 = np.sqrt(np.array(predictions.saq[1])) if predictions.saq else None
 
             self.logs_298_from_aq = self.calculate_logs_298(logk=self.logk_298,
                                                             logk_ref=self.logk_aq_298,
@@ -34,13 +37,14 @@ class SolubilityCalculations:
                                                                 uncertainty=True)
 
         if calculate_reference_solvents:
-            self.gsolv_ref_298 = predictions.gsolv_ref[0] if predictions.gsolv_ref else None  # in kcal/mol
-            self.unc_gsolv_ref_298 = np.sqrt(predictions.gsolv_ref[1]) if predictions.gsolv_ref else None
+            logger.info('Calculating logS at 298K from reference solubility')
+            self.gsolv_ref_298 = np.array(predictions.gsolv_ref[0]) if predictions.gsolv_ref else None  # in kcal/mol
+            self.unc_gsolv_ref_298 = np.sqrt(np.array(predictions.gsolv_ref[1])) if predictions.gsolv_ref else None
 
             self.logk_ref_298 = self.calculate_logk(gsolv=self.gsolv_ref_298)
             self.unc_logk_ref_298 = self.calculate_logk(gsolv=self.unc_gsolv_ref_298, uncertainty=True)
 
-            self.logs_ref_298 = predictions.data.reference_solubility.values
+            self.logs_ref_298 = np.array(predictions.data.reference_solubility)
             self.logs_298_from_ref = self.calculate_logs_298(logk=self.logk_298,
                                                              logk_ref=self.logk_ref_298,
                                                              logs_ref=self.logs_ref_298)
@@ -50,8 +54,8 @@ class SolubilityCalculations:
                                                                  uncertainty=True)
 
         if calculate_t_dep:
-            self.hsolv_298 = predictions.hsolv[0] if predictions.hsolv else None  # in kcal/mol
-            self.unc_hsolv_298 = np.sqrt(predictions.hsolv[1]) if predictions.hsolv else None
+            self.hsolv_298 = np.array(predictions.hsolv[0]) if predictions.hsolv else None  # in kcal/mol
+            self.unc_hsolv_298 = np.sqrt(np.array(predictions.hsolv[1])) if predictions.hsolv else None
 
             if predictions.solute_parameters:
                 self.E, self.S, self.A, self.B, self.L = self.get_solute_parameters(predictions.solute_parameters[0])
@@ -60,20 +64,22 @@ class SolubilityCalculations:
                 self.E, self.S, self.A, self.B, self.L = None, None, None, None, None
                 self.unc_E, self.unc_S, self.unc_A, self.unc_B, self.unc_L = None, None, None, None, None
 
-            self.V = [self.calculate_solute_parameter_v(sm[1]) for sm in predictions.data.smiles_pairs]
-            dict_diol_amine = self.get_diol_amine_ids()
+            self.V = np.array([self.calculate_solute_parameter_v(sm[1]) for sm in predictions.data.smiles_pairs])
+            self.I_OHadj, self.I_OHnonadj, self.I_NH = self.get_diol_amine_ids(predictions.data.smiles_pairs)
             self.hsubl_298 = self.get_hsubl_298(self.E, self.S, self.A, self.B, self.V,
-                                                I_OHadj=dict_diol_amine[:, 0],
-                                                I_OHnonadj=dict_diol_amine[:, 1],
-                                                I_NH=dict_diol_amine[:, 2])
+                                                I_OHadj=self.I_OHadj,
+                                                I_OHnonadj=self.I_OHnonadj,
+                                                I_NH=self.I_NH)
 
             if calculate_aqueous:
+                logger.info('Calculating T-dep logS from predicted aqueous solubility using H_solu(298K) approximation')
                 self.logs_T_from_aq = self.calculate_logs_t(hsolv_298=self.hsolv_298,
                                                             hsubl_298=self.hsubl_298,
                                                             logs_298=self.logs_298_from_aq,
                                                             temperatures=predictions.data.temperatures)
 
             if calculate_reference_solvents:
+                logger.info('Calculating T-dep logS from reference solubility using H_solu(298K) approximation')
                 self.logs_T_from_aq = self.calculate_logs_t(hsolv_298=self.hsolv_298,
                                                             hsubl_298=self.hsubl_298,
                                                             logs_298=self.logs_298_from_ref,
@@ -103,7 +109,7 @@ class SolubilityCalculations:
             A.append(i[2])
             B.append(i[3])
             L.append(i[4])
-        return E, S, A, B, L
+        return np.array(E), np.array(S), np.array(A), np.array(B), np.array(L)
 
     def get_Cp_solid(self, E, S, A, B, V, I_OHnonadj=False, in_cal=True):
         '''
@@ -148,14 +154,16 @@ class SolubilityCalculations:
         #Yunsie can you do this
         return 0.0
 
-    def get_diol_amine_ids(self):
-        solutes = [sm[1] for sm in self.predictions.data.smiles_pairs]
+    def get_diol_amine_ids(self, smiles_pairs):
+        solutes = [sm[1] for sm in smiles_pairs]
         unique_solutes = set(solutes)
         dict_diol_amine = dict()
         for i in unique_solutes:
             dict_diol_amine[i] = self.get_individual_diol_amine_ids(i)
-        list_diol_amine = [dict_diol_amine[i] for i in solutes]
-        return list_diol_amine
+        I_OHadj = [1 if dict_diol_amine[i][0] else 0 for i in solutes]
+        I_OHnonadj = [1 if dict_diol_amine[i][1] else 0 for i in solutes]
+        I_NH = [1 if dict_diol_amine[i][2] else 0 for i in solutes]
+        return np.array(I_OHadj), np.array(I_OHnonadj), np.array(I_NH)
 
     def get_individual_diol_amine_ids(self, solute):
         smarts_aliphatic_OH = ['[C;X4v4]-[O;H1]', '[!O]=[C;X3v4]-[O;H1]']

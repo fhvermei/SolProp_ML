@@ -5,20 +5,20 @@ import rdkit.Chem as Chem
 class SolubilityData:
     def __init__(self, df: pd.DataFrame, validate_smiles: bool = False, logger=None):
         """Reads in data used to calculate the solubility of neutral solutes in organic solvents
-            :param df: pandas dataframe with columns 'solvent', 'solute', 'temperature' 'logS_ref', and 'solvent_ref'.
+            :param df: pandas dataframe with columns 'solvent', 'solute', 'temperature' 'reference_solubility', and 'reference_solvent'.
             In general only the 'solute' column is mandatory, for solubility predictions at room temperature 'solute'
             and 'solvent', for other temperatures 'temperature'.
-            If calculations use experimental reference solubility 'logS_ref' and 'solvent_ref' have to be specified
+            If calculations use experimental reference solubility 'reference_solubility' and 'reference_solvent' have to be specified
             :param validate_smiles: validate the smiles and convert the inchis
         """
         self.df = df
         self.smiles_pairs = []
-        self.temperatures = []
-        self.reference_solubility = []
-        self.reference_solvents = []
+        self.temperatures = None
+        self.reference_solubility = None
+        self.reference_solvents = None
         self.validate = validate_smiles
         if df is not None:
-            self.get_data_from_df(df, logger=logger)
+            self.get_data_from_df(logger=logger)
         else:
             raise ValueError('A dataframe needs to be provided with columns \'solvent\', \'solute\', '
                              '\'temperature\' \'logS_ref\', and \'solvent_ref\', '
@@ -39,16 +39,11 @@ class SolubilityData:
         if 'temperature' in self.df.columns:
             logger.info('Reading temperature')
             self.temperatures = self.df.temperature.values
-        else:
-            self.temperatures = [None] * len(self.smiles_pairs)
 
-        if 'logs_ref' in self.df.columns:
+        if 'reference_solubility' in self.df.columns and 'reference_solvent' in self.df.columns:
             logger.info('Reading reference solubility')
             self.reference_solubility = self.df.reference_solubility.values
             self.reference_solvents = self.df.reference_solvent.values
-        else:
-            self.reference_solubility = [None] * len(self.smiles_pairs)
-            self.reference_solvents = [None] * len(self.smiles_pairs)
 
         if self.validate:
             logger.info('Validating smiles (or converting inchis)')

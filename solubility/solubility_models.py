@@ -29,7 +29,7 @@ class SolubilityModels:
         """
         number = 10 if not reduced_number else 3
         path = '/home/fhvermei/Software/PycharmProjects/ml_solvation_v01/'
-        paths = [os.path.join(path, 'models', 'Gsolv', 'model_Gsolv_' + str(i) + '.pt')
+        paths = [os.path.join(path, 'trained_models', 'Gsolv', 'model_Gsolv_' + str(i) + '.pt')
                        for i in range(number)]
         logger.info(f'Loading {number} solvation free energy models from {path}')
         input = inp_Gsolv.InputArguments()
@@ -57,7 +57,7 @@ class SolubilityModels:
         number = 12 if not reduced_number else 3
         path = '/home/fhvermei/Software/PycharmProjects/ml_solvation_v01/'
 
-        paths = [os.path.join(path, 'models', 'Hsolv', 'model_Hsolv_' + str(i) + '.pt')
+        paths = [os.path.join(path, 'trained_models', 'Hsolv', 'model_Hsolv_' + str(i) + '.pt')
                        for i in range(number)]
         logger.info(f'Loading {number} solvation enthalpy models from {path}')
         input = inp_Hsolv.InputArguments()
@@ -80,7 +80,7 @@ class SolubilityModels:
         number = 30 if not reduced_number else 3
         path = '/home/fhvermei/Software/PycharmProjects/ml_solvation_v01/'
 
-        paths = [os.path.join(path, 'models', 'Saq', 'model_Saq_' + str(i) + '.pt')
+        paths = [os.path.join(path, 'trained_models', 'Saq', 'model_Saq_' + str(i) + '.pt')
                        for i in range(number)]
         logger.info(f'Loading {number} aqueous solubility models from {path}')
         input = inp_logSaq.InputArguments()

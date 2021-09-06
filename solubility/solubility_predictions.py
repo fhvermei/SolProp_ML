@@ -71,7 +71,7 @@ class SolubilityPredictions:
         logger.info('Make Gsolv reference predictions')
         if self.models.g_models is None:
             raise ValueError('Gsolv models are not loaded, cannot make predictions')
-        if not self.data.reference_solvents:
+        if self.data.reference_solvents is None:
             raise ValueError('Gsolv reference predictions cannot be made because no refrence solvents are provided')
         new_smiles_pairs = [(ref, sm[1]) for ref, sm in zip(self.data.reference_solvents, self.data.smiles_pairs)]
         results = self.make_predictions(set(new_smiles_pairs), self.models.g_models)

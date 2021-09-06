@@ -20,6 +20,7 @@ def create_logger(save_dir):
         logger.addHandler(fh_v)
     return logger
 
+
 def predict_property(path: str = None,
                      df: pd.DataFrame = None,
                      gsolv: bool = False,
@@ -96,7 +97,9 @@ def calculate_solubility(path: str = None,
                         calculate_aqueous: bool = False,
                         validate_smiles: bool = False,
                         reduced_number: bool = False,
-                        export_csv: str = False) -> SolubilityCalculations:
+                        export_csv: str = False,
+                        export_detailed_csv: str = False,
+                        logger = None) -> SolubilityCalculations:
     """
     Predict relevant properties and make calculations.
     Data is read from a csv file or a pandas dataframe.
@@ -105,37 +108,108 @@ def calculate_solubility(path: str = None,
         :param calculate_aqueous: also calculate aqueous solubility even if reference solubility is provided
         :param validate_smiles: validate the smiles inputs (also converts inchis)
         :param reduced_number: use a reduced number of models for faster but less accurate prediction (does not work for solute_parameters)
-        :param export_csv: path if csv file with predictions needs to be exported
+        :param export_csv: path if csv file with final logS calculations needs to be exported
+        :param export_detailed_csv: path if csv file with all predictions and calculations needs to be exported
 
         :returns: calculations in the form of SolubilityCalculations
     """
-    if not df:
+    if df is None:
         df = pd.read_csv(path)
-    data = SolubilityData(df=df, validate_smiles=validate_smiles, logger=log)
+    data = SolubilityData(df=df, validate_smiles=validate_smiles, logger=logger)
 
-    predict_reference_solvents = data.reference_solvents and not len([i for i in data.reference_solvents if i]) == 0
+    predict_reference_solvents = data.reference_solvents is not None and not len([i for i in data.reference_solvents if i]) == 0
     predict_aqueous = calculate_aqueous or not predict_reference_solvents
-    predict_t_dep = data.temperatures and (np.min(data.temperatures) < 297. or np.max(data.temperatures) > 299.)
+    predict_t_dep = data.temperatures is not None and (np.min(data.temperatures) < 297. or np.max(data.temperatures) > 299.)
 
     models = SolubilityModels(reduced_number=reduced_number,
                               load_g=True,
                               load_h=predict_t_dep,
-                              load_saq=predict_aqueous)
+                              load_saq=predict_aqueous,
+                              logger=logger)
 
     predictions = SolubilityPredictions(data,
                                         models,
                                         predict_aqueous=predict_aqueous,
                                         predict_reference_solvents=predict_reference_solvents,
-                                        predict_t_dep=predict_t_dep)
+                                        predict_t_dep=predict_t_dep,
+                                        logger=logger)
+
     calculations = SolubilityCalculations(predictions,
                                           calculate_aqueous=predict_aqueous,
                                           calculate_reference_solvents=predict_reference_solvents,
-                                          calculate_t_dep=predict_t_dep)
-    #if export_csv:
-        #todo
-        #continue
+                                          calculate_t_dep=predict_t_dep,
+                                          logger=logger)
+
+    if export_csv is not None or export_detailed_csv is not None:
+        details = export_detailed_csv is not None
+        if calculations.gsolv_298 and details:
+            df['G_solv_298 [kcal/mol]'] = calculations.gsolv_298
+            df['uncertainty_G_solv_298 [kcal/mol]'] = calculations.unc_gsolv_298
+            df['logK_298 [log10(-)]'] = calculations.logk_298
+            df['uncertainty_logK_298 [log10(-)]'] = calculations.unc_logk_298
+        if predict_aqueous:
+            if details:
+                df['G_solv_aq_298 [kcal/mol]'] = calculations.gsolv_aq_298
+                df['uncertainty_G_solv_aq_298 [kcal/mol]'] = calculations.unc_gsolv_aq_298
+                df['logK_aq_298 [log10(-)]'] = calculations.logk_aq_298
+                df['uncertainty_logK_aq_298 [log10(-)]'] = calculations.unc_logk_aq_298
+                df['logS_aq_298 [log10(mol/L)]'] = calculations.logs_aq_298
+                df['uncertainty_logS_aq_298 [log10(mol/L)]'] = calculations.unc_logs_aq_298
+            df['logS_298_from_aq [log10(mol/L)]'] = calculations.logs_298_from_aq
+            df['uncertainty_logS_298_from_aq [log10(mol/L)]'] = calculations.unc_logs_298_from_aq
+        if predict_reference_solvents:
+            if details:
+                df['G_solv_ref_298 [kcal/mol]'] = calculations.gsolv_ref_298
+                df['uncertainty_G_solv_ref_298 [kcal/mol]'] = calculations.unc_gsolv_ref_298
+                df['logK_ref_298 [log10(-)]'] = calculations.logk_ref_298
+                df['uncertainty_logK_ref_298 [log10(-)]'] = calculations.unc_logk_ref_298
+            df['logS_298_from_ref [log10(mol/L)]'] = calculations.logs_298_from_ref
+            df['uncertainty_logS_298_from_ref [log10(mol/L)]'] = calculations.unc_logs_298_from_ref
+        if predict_t_dep:
+            if details:
+                df['H_solv_298 [kcal/mol]'] = calculations.hsolv_298
+                df['uncertainty_H_solv_298 [kcal/mol]'] = calculations.unc_hsolv_298
+                df['E_solute_parameter'] = calculations.E
+                df['uncertainty_E_solute_parameter'] = calculations.unc_E
+                df['S_solute_parameter'] = calculations.S
+                df['uncertainty_S_solute_parameter'] = calculations.unc_S
+                df['A_solute_parameter'] = calculations.A
+                df['uncertainty_A_solute_parameter'] = calculations.unc_A
+                df['B_solute_parameter'] = calculations.B
+                df['uncertainty_B_solute_parameter'] = calculations.unc_B
+                df['V_solute_parameter'] = calculations.V
+                df['L_solute_parameter'] = calculations.L
+                df['uncertainty_L_solute_parameter'] = calculations.unc_L
+                df['adjacent diol'] = calculations.I_OHadj
+                df['non-adjacent diol'] = calculations.I_OHnonadj
+                df['amine'] = calculations.I_NH
+                df['H_subl_298 [kcal/mol]'] = calculations.hsubl_298
+            if predict_aqueous:
+                df['logS_T_from_aq [log10(mol/L)]'] = calculations.logs_T_from_aq
+            if predict_reference_solvents:
+                df['logS_T_from_ref [log10(mol/L)]'] = calculations.logs_T_from_ref
+
     return calculations
+
 
 log = create_logger('/home/fhvermei/Software/PycharmProjects/ml_solvation_v01/databases/test.log')
 df = pd.read_csv('/home/fhvermei/Software/PycharmProjects/ml_solvation_v01/databases/test.csv')
 
+predictions = predict_property(path=None,
+                               df=df,
+                               gsolv=True,
+                               hsolv=False,
+                               saq=False,
+                               solute_parameters=False,
+                               reduced_number=False,
+                               validate_smiles=False,
+                               export_csv='./../results_predictions.csv')
+
+results = calculate_solubility(path=None,
+                               df=df,
+                               validate_smiles=True,
+                               calculate_aqueous=True,
+                               reduced_number=False,
+                               export_csv='./../results_calculations.csv',
+                               export_detailed_csv='./../detailed_results_calculations.csv',
+                               logger=log)
