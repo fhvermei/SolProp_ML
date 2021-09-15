@@ -81,7 +81,7 @@ def predict_property(path: str = None,
             df['SoluParam_L'] = L
 
             E_unc, S_unc, A_unc, B_unc, L_unc = [], [], [], [], []
-            for i in predictions.solute_parameter_predictions[1]:
+            for i in predictions.solute_parameters[1]:
                 E_unc.append(i[0])
                 S_unc.append(i[1])
                 A_unc.append(i[2])
