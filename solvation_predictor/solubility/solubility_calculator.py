@@ -4,6 +4,20 @@ from solvation_predictor.solubility.solubility_predictions import SolubilityPred
 
 
 class SolubilityCalculations:
+
+    # Set class variable with McGowan volumes for each atomic number
+    mcgowan_volumes = {
+        1: 8.71, 2: 6.75,
+        3: 22.23, 4: 20.27, 5: 18.31, 6: 16.35, 7: 14.39, 8: 12.43, 9: 10.47, 10: 8.51,
+        11: 32.71, 12: 30.75, 13: 28.79, 14: 26.83, 15: 24.87, 16: 22.91, 17: 20.95, 18: 18.99,
+        19: 51.89, 20: 50.28, 21: 48.68, 22: 47.07, 23: 45.47, 24: 43.86, 25: 42.26, 26: 40.65, 27: 39.05,
+        28: 37.44, 29: 35.84, 30: 34.23, 31: 32.63, 32: 31.02, 33: 29.42, 34: 27.81, 35: 26.21, 36: 24.60,
+        37: 60.22, 38: 58.61, 39: 57.01, 40: 55.40, 41: 53.80, 42: 52.19, 43: 50.59, 44: 48.98, 45: 47.38,
+        46: 45.77, 47: 44.17, 48: 42.56, 49: 40.96, 50: 39.35, 51: 37.75, 52: 36.14, 53: 34.54, 54: 32.93,
+        55: 77.25, 56: 76.00, 57: 74.75, 72: 55.97, 73: 54.71, 74: 53.46, 75: 52.21, 76: 50.96, 77: 49.71,
+        78: 48.45, 79: 47.20, 80: 45.95, 81: 44.70, 82: 43.45, 83: 42.19, 84: 40.94, 85: 39.69, 86: 38.44,
+    }
+
     def __init__(self, predictions: SolubilityPredictions,
                  calculate_aqueous: bool = None,
                  calculate_reference_solvents: bool = None,
@@ -150,9 +164,17 @@ class SolubilityCalculations:
         return dHsub
 
     def calculate_solute_parameter_v(self, solute_smiles):
-        V = None
-        #Yunsie can you do this
-        return 0.0
+        mol = Chem.MolFromSmiles(solute_smiles)
+        mol = Chem.rdmolops.AddHs(mol)
+        V_tot = 0.0
+        for atom in mol.GetAtoms():
+            try:
+                V_tot += self.mcgowan_volumes[atom.GetAtomicNum()]
+            except KeyError:
+                raise ValueError('McGowan volume not available for element {}'.format(atom.GetAtomicNum()))
+            # divide contribution in half since all bonds would be counted twice this way
+            V_tot -= len(atom.GetBonds()) * 6.56 / 2
+        return V_tot / 100  # division by 100 to get units correct
 
     def get_diol_amine_ids(self, smiles_pairs):
         solutes = [sm[1] for sm in smiles_pairs]
