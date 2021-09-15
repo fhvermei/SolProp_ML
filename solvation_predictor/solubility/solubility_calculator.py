@@ -1,5 +1,7 @@
+import json
 import numpy as np
 import rdkit.Chem as Chem
+import CoolProp.CoolProp as CP
 from solvation_predictor.solubility.solubility_predictions import SolubilityPredictions
 
 
@@ -84,6 +86,16 @@ class SolubilityCalculations:
                                                 I_OHadj=self.I_OHadj,
                                                 I_OHnonadj=self.I_OHnonadj,
                                                 I_NH=self.I_NH)
+            self.Cp_solid = self.get_Cp_solid(self.E, self.S, self.A, self.B, self.V,
+                                              I_OHnonadj=self.I_OHnonadj)
+            self.Cp_gas = self.get_Cp_gas(self.E, self.S, self.A, self.B, self.V)
+
+            # load solvent's CoolProp name, critical temperature, and critical density data
+            with open('solvent_crit_data.json') as f:
+                self.solv_info_dict = json.load(f)  # inchi is used as a solvent key
+
+            self.coolprop_name_list, self.crit_t_list, self.crit_d_list = \
+                self.get_solvent_info(predictions.data.smiles_pairs, self.solv_info_dict)
 
             if calculate_aqueous:
                 logger.info('Calculating T-dep logS from predicted aqueous solubility using H_solu(298K) approximation')
@@ -236,6 +248,105 @@ class SolubilityCalculations:
                 amine_found = True
 
         return OH_adj_found, OH_non_found, amine_found
+
+    def get_solvent_info(self, smiles_pairs, solv_info_dict):
+        solvents_smiles_list = [sm[0] for sm in smiles_pairs]
+        coolprop_name_list, crit_t_list, crit_d_list = [], [], []
+        for smi in solvents_smiles_list:
+            mol = Chem.MolFromSmiles(smi)
+            inchi = Chem.MolToInchi(mol, options='/FixedH')
+            if inchi in solv_info_dict:
+                coolprop_name_list.append(solv_info_dict[inchi]['coolprop_name'])
+                crit_t_list.append(solv_info_dict[inchi]['Tc'])  # in K
+                crit_d_list.append(solv_info_dict[inchi]['rho_c'])  # in mol/m^3
+            else:
+                coolprop_name_list.append(None)
+                crit_t_list.append(None)
+                crit_d_list.append(None)
+        return coolprop_name_list, crit_t_list, crit_d_list
+
+    def get_gas_liq_sat_density(self, T, Tc, rho_c, coolprop_name=None, ref_solvent='n-Heptane', T_adjustment=True):
+        if coolprop_name is None:
+            return self.get_gas_liq_sat_density_from_ref(T, Tc, rho_c, ref_solvent=ref_solvent,
+                                                         T_adjustment=T_adjustment)
+        else:
+            return self.get_gas_liq_sat_density_from_cp(T, coolprop_name, T_adjustment=T_adjustment)
+
+    def get_gas_liq_sat_density_from_cp(self, T, coolprop_name, T_adjustment=True, give_T_max_min=False):
+        # initialize the output values
+        gas_density, liq_density, new_T, error_message = None, None, None, None
+
+        # get the maximum (critical temperature) and minimum temperatures available for CoolProp calculation
+        T_max = CP.PropsSI('T_critical', coolprop_name)  # K
+        T_min = CP.PropsSI('T_min', coolprop_name)  # K
+
+        # check whether the temperature is in a valid range.
+        if T > T_max:
+            new_T = T_max - 5
+            error_message = f"Temperature {T} K is above or too close to the critical temperature {T_max} K."
+        elif T > T_max - 5:
+            error_message = f"Warning! Temperature {T} K is too close to the critical temperature {T_max} K and "
+            error_message += 'the prediction may not be reliable.'
+        elif T < T_min:
+            new_T = T_min
+            error_message = f"Temperature {T} K must be in range [{T_min} K, {T_max} K]."
+
+        if new_T is None:
+            gas_density = CP.PropsSI('Dmolar', 'T', T, 'Q', 1, coolprop_name)  # in mol/m^3
+            liq_density = CP.PropsSI('Dmolar', 'T', T, 'Q', 0, coolprop_name)  # in mol/m^3
+        elif T_adjustment is True:
+            error_message += f" {'%.3f' % new_T} K is used instead for calculation."
+            gas_density = CP.PropsSI('Dmolar', 'T', new_T, 'Q', 1, coolprop_name)  # in mol/m^3
+            liq_density = CP.PropsSI('Dmolar', 'T', new_T, 'Q', 0, coolprop_name)  # in mol/m^3
+
+        if give_T_max_min:
+            return gas_density, liq_density, new_T, error_message, False, T_max, T_min
+        else:
+            return gas_density, liq_density, new_T, error_message, False
+
+    def get_gas_liq_sat_density_from_ref(self, T, Tc, rho_c, ref_solvent='n-Heptane', T_adjustment=True):
+        # convert temperature to reduced temperature and calculate corresponding temperature for the reference solvent
+        T_red = T / Tc
+        Tc_ref = CP.PropsSI('T_critical', ref_solvent)
+        T_ref = T_red * Tc_ref
+        # get densities for the reference solvent
+        gas_density_ref, liq_density_ref, new_T_ref, error_message, dummy_var, T_max_ref, T_min_ref = \
+            self.get_gas_liq_sat_density_from_cp(T_ref, ref_solvent, T_adjustment=True, give_T_max_min=True)
+        # convert densities to reduced densities and calculate corresponding densities for the solvent of interest.
+        rhoc_ref = CP.PropsSI('rhomolar_critical', ref_solvent)  # mol/m^3
+        gas_density_red = gas_density_ref / rhoc_ref
+        gas_density = gas_density_red * rho_c  # mol/m^3
+        liq_density_red = liq_density_ref / rhoc_ref
+        liq_density = liq_density_red * rho_c  # mol/m^3
+
+        # initialize some output values
+        new_T, use_const_dHsolv_for_low_T = None, False
+        # Update the error message with a valid temperature range
+        if new_T_ref is not None:
+            new_T_red = new_T_ref / Tc_ref
+            new_T = new_T_red * Tc
+            if T_adjustment is True:
+                # Overwrite the error message
+                if new_T > T:
+                    error_message = f"Unable to predict dHsoluT for T < {'%.3f' % new_T} K. dHsoluT at {'%.3f' % new_T} K is used instead for lower temperatures."
+                    use_const_dHsolv_for_low_T = True
+                elif T > new_T:
+                    error_message = f"Temperature {T} K is too close to or above the critical temperature {Tc} K."
+                    error_message += f" {'%.3f' % new_T} K is used instead for calculation."
+                elif T > Tc - 5:
+                    error_message = f"Warning! Temperature {T} K is too close to the critical temperature {Tc} K. "
+                    error_message += 'The prediction may not be reliable.'
+            else:
+                # Overwrite the error message and set the output to None
+                T_max_red = T_max_ref / Tc_ref
+                T_max = T_max_red * Tc
+                T_min_red = T_min_ref / Tc_ref
+                T_min = T_min_red * Tc
+                error_message = f"Temperature {T} K must be in range [{T_min} K, {T_max} K]."
+                gas_density = None
+                liq_density = None
+
+        return gas_density, liq_density, new_T, error_message, use_const_dHsolv_for_low_T
 
 
 
