@@ -1,5 +1,7 @@
+import json
 import numpy as np
 import rdkit.Chem as Chem
+import CoolProp.CoolProp as CP
 from solvation_predictor.solubility.solubility_predictions import SolubilityPredictions
 
 
@@ -84,6 +86,16 @@ class SolubilityCalculations:
                                                 I_OHadj=self.I_OHadj,
                                                 I_OHnonadj=self.I_OHnonadj,
                                                 I_NH=self.I_NH)
+            self.Cp_solid = self.get_Cp_solid(self.E, self.S, self.A, self.B, self.V,
+                                              I_OHnonadj=self.I_OHnonadj)
+            self.Cp_gas = self.get_Cp_gas(self.E, self.S, self.A, self.B, self.V)
+
+            # load solvent's CoolProp name, critical temperature, and critical density data
+            with open('solvent_crit_data.json') as f:
+                self.solv_info_dict = json.load(f)  # inchi is used as a solvent key
+
+            self.coolprop_name_list, self.crit_t_list, self.crit_d_list = \
+                self.get_solvent_info(predictions.data.smiles_pairs, self.solv_info_dict)
 
             if calculate_aqueous:
                 logger.info('Calculating T-dep logS from predicted aqueous solubility using H_solu(298K) approximation')
@@ -237,6 +249,73 @@ class SolubilityCalculations:
 
         return OH_adj_found, OH_non_found, amine_found
 
+    def get_solvent_info(self, smiles_pairs, solv_info_dict):
+        solvents_smiles_list = [sm[0] for sm in smiles_pairs]
+        coolprop_name_list, crit_t_list, crit_d_list = [], [], []
+        for smi in solvents_smiles_list:
+            mol = Chem.MolFromSmiles(smi)
+            inchi = Chem.MolToInchi(mol, options='/FixedH')
+            if inchi in solv_info_dict:
+                coolprop_name_list.append(solv_info_dict[inchi]['coolprop_name'])
+                crit_t_list.append(solv_info_dict[inchi]['Tc'])  # in K
+                crit_d_list.append(solv_info_dict[inchi]['rho_c'])  # in mol/m^3
+            else:
+                coolprop_name_list.append(None)
+                crit_t_list.append(None)
+                crit_d_list.append(None)
+        return coolprop_name_list, crit_t_list, crit_d_list
 
+    def check_valid_t(self, T, Tc, coolprop_name=None, ref_solvent='n-Heptane'):
+        if coolprop_name is None:
+            Tc_ref = CP.PropsSI('T_critical', ref_solvent)  # in K
+            T_min_ref = CP.PropsSI('T_min', ref_solvent)
+            T_max = Tc
+            T_min_red = T_min_ref / Tc_ref
+            T_min = T_min_red * Tc
+        else:
+            T_max = CP.PropsSI('T_critical', coolprop_name)
+            T_min = CP.PropsSI('T_min', coolprop_name)
 
+        valid = True
+        const_hsolu_T = None
+        error_message = None
+        if T > T_max:
+            error_message = f"Temperature {T} K is above the critical temperature {T_max} K."
+            valid = False
+        elif T > T_max - 15:
+            error_message = f"Warning! Temperature {T} K is too close to the critical temperature {T_max} K."
+            error_message += ' The prediction may not be reliable.'
+        elif T < T_min:
+            const_hsolu_T = T_min
+            if coolprop_name is None:
+                error_message = f"Unable to predict dHsoluT for T < {'%.3f' % T_min} K. dHsoluT at {'%.3f' % T_min} K is used instead for lower temperatures."
+            else:
+                error_message = f"Warning! Temperature {T} K is below the minimum limit. It should be in range [{T_min} K, {T_max} K]."
+                error_message += f" Constant dHsoluT at {'%.3f' % T_min} K is used instead for lower temperatures."
+        return valid, const_hsolu_T, error_message, T_min, T_max
 
+    def get_gas_liq_sat_density(self, T, Tc, rho_c, coolprop_name=None, ref_solvent='n-Heptane'):
+        if coolprop_name is None:
+            return self.get_gas_liq_sat_density_from_ref(T, Tc, rho_c, ref_solvent=ref_solvent)
+        else:
+            return self.get_gas_liq_sat_density_from_cp(T, coolprop_name)
+
+    def get_gas_liq_sat_density_from_cp(self, T, coolprop_name):
+        gas_density = CP.PropsSI('Dmolar', 'T', T, 'Q', 1, coolprop_name)  # in mol/m^3
+        liq_density = CP.PropsSI('Dmolar', 'T', T, 'Q', 0, coolprop_name)  # in mol/m^3
+        return gas_density, liq_density
+
+    def get_gas_liq_sat_density_from_ref(self, T, Tc, rho_c, ref_solvent='n-Heptane'):
+        # convert temperature to reduced temperature and then calculate corresponding temperature for the reference solvent
+        T_red = T / Tc
+        Tc_ref = CP.PropsSI('T_critical', ref_solvent)  # K
+        T_ref = T_red * Tc_ref
+        # get densities for the reference solvent
+        gas_density_ref, liq_density_ref = self.get_gas_liq_sat_density_from_cp(T_ref, ref_solvent)
+        # convert densities to reduced densities and then calculate corresponding densities for the solvent of interest.
+        rhoc_ref = CP.PropsSI('rhomolar_critical', ref_solvent)  # mol/m^3
+        gas_density_red = gas_density_ref / rhoc_ref
+        gas_density = gas_density_red * rho_c  # mol/m^3
+        liq_density_red = liq_density_ref / rhoc_ref
+        liq_density = liq_density_red * rho_c  # mol/m^3
+        return gas_density, liq_density
