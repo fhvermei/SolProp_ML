@@ -319,3 +319,109 @@ class SolubilityCalculations:
         liq_density_red = liq_density_ref / rhoc_ref
         liq_density = liq_density_red * rho_c  # mol/m^3
         return gas_density, liq_density
+
+    def get_Kfactor_parameters(self, gsolv_298, hsolv_298, Tc, rho_c, coolprop_name, T_trans_factor=0.75):
+        T1 = 298
+        gsolv_298 = gsolv_298 * 4184  # convert from kcal/mol to J/mol
+        hsolv_298 = hsolv_298 * 4184  # convert from kcal/mol to J/mol
+        dSsolv298 = (hsolv_298 - gsolv_298) / T1
+        T_transition = Tc * T_trans_factor  # T_trans_factor is empirically set to 0.75 by default
+
+        # Generate Amatrix and bvector for Ax = b
+        Amatrix = np.zeros((4, 4))
+        bvec = np.zeros((4, 1))
+
+        # 1. Tr*ln(K-factor) value at T = 298 K
+        rho_g_298, rho_l_298 = self.get_gas_liq_sat_density(T1, Tc, rho_c, coolprop_name=coolprop_name)
+        K298 = np.exp(gsolv_298 / (T1 * 8.314)) / rho_g_298 * rho_l_298  # K-factor
+        x298 = T1 / Tc * np.log(K298)  # Tr*ln(K-factor), in K
+        Amatrix[0][0] = 1
+        Amatrix[0][1] = (1 - T1 / Tc) ** 0.355
+        Amatrix[0][2] = np.exp(1 - T1 / Tc) * (T1 / Tc) ** 0.59
+        Amatrix[0][3] = 0
+        bvec[0] = x298
+        # 2. d(Tr*ln(K-factor)) / dT at T = 298 Use finite difference method to get the temperature gradient from
+        # delG, delH, and delS at 298 K
+        T2 = T1 + 1
+        delG_T2 = hsolv_298 - dSsolv298 * T2
+        rho_g_T2, rho_l_T2, = self.get_gas_liq_sat_density(T2, Tc, rho_c, coolprop_name=coolprop_name)
+        K_T2 = np.exp(delG_T2 / (T2 * 8.314)) / rho_g_T2 * rho_l_T2
+        x_T2 = T2 / Tc * np.log(K_T2)  # Tr*ln(K-factor) at 299 K, in K
+        slope298 = (x_T2 - x298) / (T2 - T1)
+        Amatrix[1][0] = 0
+        Amatrix[1][1] = -0.355 / Tc * ((1 - T1 / Tc) ** (-0.645))
+        Amatrix[1][2] = 1 / Tc * np.exp(1 - T1 / Tc) * (0.59 * (T1 / Tc) ** (-0.41) - (T1 / Tc) ** 0.59)
+        Amatrix[1][3] = 0
+        bvec[1] = slope298
+        # 3. Tr*ln(K-factor) continuity at T = T_transition
+        rho_g_Ttran, rho_l_Ttran = self.get_gas_liq_sat_density(T_transition, Tc, rho_c, coolprop_name=coolprop_name)
+        Amatrix[2][0] = 1
+        Amatrix[2][1] = (1 - T_transition / Tc) ** 0.355
+        Amatrix[2][2] = np.exp(1 - T_transition / Tc) * (T_transition / Tc) ** 0.59
+        Amatrix[2][3] = -(rho_l_Ttran - rho_c) / rho_c
+        bvec[2] = 0
+        # 4. d(Tr*ln(K-factor)) / dT smooth transition at T = T_transition
+        T3 = T_transition + 1
+        rho_g_T3, rho_l_T3 = self.get_gas_liq_sat_density(T3, Tc, rho_c, coolprop_name=coolprop_name)
+        Amatrix[3][0] = 0
+        Amatrix[3][1] = -0.355 / Tc * ((1 - T_transition / Tc) ** (-0.645))
+        Amatrix[3][2] = 1 / Tc * np.exp(1 - T_transition / Tc) * (
+                0.59 * (T_transition / Tc) ** (-0.41) - (T_transition / Tc) ** 0.59)
+        Amatrix[3][3] = - ((rho_l_T3 - rho_l_Ttran) / rho_c / (T3 - T_transition))
+        bvec[3] = 0
+
+        # solve for the parameters
+        param, residues, ranks, s = np.linalg.lstsq(Amatrix, bvec, rcond=None)
+        # store the results in kfactor_parameters class
+        kfactor_parameters = KfactorParameters()
+        kfactor_parameters.lower_T = [float(param[0]), float(param[1]), float(param[2])]
+        kfactor_parameters.higher_T = float(param[3])
+        kfactor_parameters.T_transition = T_transition
+        return kfactor_parameters
+
+    def get_t_dep_gsolv_kfactor(self, T, Tc, rho_c, coolprop_name, kfactor_parameters, only_gsolv=True):
+        A = kfactor_parameters.lower_T[0]
+        B = kfactor_parameters.lower_T[1]
+        C = kfactor_parameters.lower_T[2]
+        D = kfactor_parameters.higher_T
+        T_transition = kfactor_parameters.T_transition
+        rho_g, rho_l = self.get_gas_liq_sat_density(T, Tc, rho_c, coolprop_name=coolprop_name)
+        if T < T_transition:
+            kfactor = np.exp((A + B * (1 - T / Tc) ** 0.355 + C * np.exp(1 - T / Tc) * (T / Tc) ** 0.59) / (T / Tc))
+        else:
+            kfactor = np.exp(D * (rho_l / rho_c - 1) / (T / Tc))
+        gsolv = 8.314 * T * np.log(kfactor * rho_g / (rho_l)) / 4184  # in kcal/mol
+        if only_gsolv:
+            return gsolv
+        else:
+            return gsolv, kfactor
+
+    def get_t_dep_hsolv(self, T, Tc, rho_c, coolprop_name, kfactor_parameters, T_min, T_max):
+        # get the list of temperatures to evaluate gsolv
+        if T - 1 < T_min:
+            T_list = [T, T+1]
+        elif T + 1 > T_max:
+            T_list = [T, T-1]
+        else:
+            T_list = [T-1, T, T+1]
+        gsolv_list = [self.get_t_dep_gsolv_kfactor(T, Tc, rho_c, coolprop_name, kfactor_parameters) for T in T_list]
+        # estimate hsolv using finite difference
+        if len(T_list) == 2:
+            gsolv_T = gsolv_list[0]
+            ssolv_T = - (gsolv_list[1] - gsolv_T) / (T_list[1] - T_list[0])
+        else:
+            gsolv_T = gsolv_list[1]
+            ssolv_T = - (gsolv_list[2] - gsolv_list[0]) / (T_list[2] - T_list[0])
+        hsolv_T = gsolv_T + T * ssolv_T
+        return hsolv_T  # in kcal/mol
+
+
+
+class KfactorParameters:
+    """
+    Stores the fitted parameters for K-factor calculation
+    """
+    def __init__(self, A=None, B=None, C=None, D=None, T_transition=None):
+        self.lower_T = [A, B, C]
+        self.higher_T = D
+        self.T_transition = T_transition  # in K
