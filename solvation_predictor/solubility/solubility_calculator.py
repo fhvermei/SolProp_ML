@@ -1,3 +1,4 @@
+import os
 import json
 import numpy as np
 import rdkit.Chem as Chem
@@ -95,7 +96,9 @@ class SolubilityCalculations:
                 self.Cp_gas = self.get_Cp_gas(self.E, self.S, self.A, self.B, self.V)
 
                 # load solvent's CoolProp name, critical temperature, and critical density data
-                with open('solvent_crit_data.json') as f:
+                current_path = os.path.dirname(os.path.abspath(__file__))
+                crit_data_path = os.path.join(current_path, 'solvent_crit_data.json')
+                with open(crit_data_path) as f:
                     self.solv_info_dict = json.load(f)  # inchi is used as a solvent key
 
                 self.coolprop_name_list, self.crit_t_list, self.crit_d_list = \
