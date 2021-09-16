@@ -126,6 +126,7 @@ def calculate_solubility(path: str = None,
     predict_reference_solvents = data.reference_solvents is not None and not len([i for i in data.reference_solvents if i]) == 0
     predict_aqueous = calculate_aqueous or not predict_reference_solvents
     predict_t_dep = data.temperatures is not None and (np.min(data.temperatures) < 297. or np.max(data.temperatures) > 299.)
+    calculate_t_dep_with_t_dep_hsolu = predict_t_dep
 
     models = SolubilityModels(reduced_number=reduced_number,
                               load_g=True,
@@ -144,6 +145,7 @@ def calculate_solubility(path: str = None,
                                           calculate_aqueous=predict_aqueous,
                                           calculate_reference_solvents=predict_reference_solvents,
                                           calculate_t_dep=predict_t_dep,
+                                          calculate_t_dep_with_t_dep_hsolu=calculate_t_dep_with_t_dep_hsolu,
                                           logger=logger)
 
     if export_csv is not None or export_detailed_csv is not None:
@@ -158,6 +160,12 @@ def calculate_solubility(path: str = None,
                 df['logS_T_from_aq [log10(mol/L)]'] = calculations.logs_T_from_aq
             if predict_reference_solvents:
                 df['logS_T_from_ref [log10(mol/L)]'] = calculations.logs_T_from_ref
+        if calculate_t_dep_with_t_dep_hsolu:
+            if predict_aqueous:
+                df['logS_T_from_aq_with_T_dep_Hsolu [log10(mol/L)]'] = calculations.logs_T_with_t_dep_hsolu_from_aq
+            if predict_reference_solvents:
+                df['logS_T_from_ref_with_T_dep_Hsolu [log10(mol/L)]'] = calculations.logs_T_with_t_dep_hsolu_from_ref
+            df['error_message_for_T_dep_Hsolu_prediction'] = calculations.logs_T_with_t_dep_hsolu_error_message
         if export_csv is not None:
             df.to_csv(export_csv, index=False)
 
@@ -202,6 +210,10 @@ def calculate_solubility(path: str = None,
                 df_details['non-adjacent diol'] = calculations.I_OHnonadj
                 df_details['amine'] = calculations.I_NH
                 df_details['H_subl_298 [kcal/mol]'] = calculations.hsubl_298
+            if calculate_t_dep_with_t_dep_hsolu:
+                df_details['Cp_gas [J/K/mol]'] = calculations.Cp_gas
+                df_details['Cp_solid [J/K/mol]'] = calculations.Cp_solid
+                df_details['H_solv_T [kcal/mol]'] = calculations.hsolv_T
             df_details.to_csv(export_detailed_csv, index=False)
 
     return calculations
