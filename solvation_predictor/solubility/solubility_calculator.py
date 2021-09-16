@@ -2,6 +2,7 @@ import json
 import numpy as np
 import rdkit.Chem as Chem
 import CoolProp.CoolProp as CP
+from scipy.integrate import quad
 from solvation_predictor.solubility.solubility_predictions import SolubilityPredictions
 
 
@@ -415,6 +416,54 @@ class SolubilityCalculations:
         hsolv_T = gsolv_T + T * ssolv_T
         return hsolv_T  # in kcal/mol
 
+    def hsolv_integrand(self, T, Tc, rho_c, coolprop_name, kfactor_parameters, T_min, T_max):
+        hsolv_T = self.get_t_dep_hsolv(T, Tc, rho_c, coolprop_name, kfactor_parameters, T_min, T_max)  # in kcal/mol
+        integrand = hsolv_T * 4.184 * 1000. / (8.314 * T ** 2)
+        return integrand
+
+    def integrate_hsolv_term(self, T, const_hsolu_T, Tc, rho_c, coolprop_name, kfactor_parameters, T_min, T_max):
+        if const_hsolu_T is not None:
+            T_for_integral = const_hsolu_T
+        else:
+            T_for_integral = T
+        # do numerical integral from 298 K to T_for_integral
+        I = quad(self.hsolv_integrand, 298, T_for_integral,
+                 args=(Tc, rho_c, coolprop_name, kfactor_parameters, T_min, T_max))
+        hsolv_integral = I[0]
+        # Use a constant hsolvT at const_hsolu_T for T < const_hsolu_T if const_hsolu_T is not None
+        if const_hsolu_T is not None:
+            hsolv_T = self.get_t_dep_hsolv(const_hsolu_T, Tc, rho_c, coolprop_name, kfactor_parameters, T_min, T_max)
+            hsolv_integral += (- hsolv_T * 4.184 * 1000.) / 8.314 * (1 / T - 1 / const_hsolu_T)
+        return hsolv_integral
+
+    def integrate_t_dep_hsolu(self, hsolv_integral, hsubl_298, Cp_solid, Cp_gas, T):
+        '''
+        hsubl_298 in kcal/mol. Cp_solid and Cp_gas in J/K/mol. T in K.
+        '''
+        hsubl_298 = hsubl_298 * 4.184 * 1000  # convert from kcal/mol to J/mol
+        hsub_integral = (- hsubl_298) / 8.314 * (1 / T - 1 / 298)
+        Cpsolid_integral = (-Cp_solid * 298) / 8.314 * (1 / T - 1 / 298) \
+                           + (-Cp_solid) / 8.314 * np.log(T / 298)
+        Cpgas_integral = (Cp_gas * 298) / 8.314 * (1 / T - 1 / 298) \
+                         + (Cp_gas) / 8.314 * np.log(T / 298)
+        total_integral = hsolv_integral + hsub_integral + Cpgas_integral + Cpsolid_integral
+        return total_integral
+
+    def calculate_logs_t_with_t_dep_hsolu(self, gsolv_298=None, hsolv_298=None, hsubl_298=None, Cp_solid=None,
+                                          Cp_gas=None, logs_298=None, T=None, coolprop_name=None, Tc=None, rho_c=None):
+
+        # check whether the given temperature is valid
+        valid, const_hsolu_T, error_message, T_min, T_max = self.check_valid_t(T, Tc, coolprop_name=coolprop_name)
+
+        if valid is False:
+            return None, error_message
+
+        kfactor_parameters = self.get_Kfactor_parameters(gsolv_298, hsolv_298, Tc, rho_c, coolprop_name)
+        hsolv_integral = self.integrate_hsolv_term(T, const_hsolu_T, Tc, rho_c, coolprop_name, kfactor_parameters,
+                                                   T_min, T_max)
+        total_integral = self.integrate_t_dep_hsolu(hsolv_integral, hsubl_298, Cp_solid, Cp_gas, T)
+        logs_t = logs_298 + total_integral / 2.303
+        return logs_t, error_message
 
 
 class KfactorParameters:
