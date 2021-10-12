@@ -91,8 +91,8 @@ def calculate_solubility(path: str = None,
                         calculate_aqueous: bool = False,
                         validate_smiles: bool = False,
                         reduced_number: bool = False,
-                        export_csv: str = False,
-                        export_detailed_csv: str = False,
+                        export_csv: str = None,
+                        export_detailed_csv: bool = False,
                         logger = None) -> SolubilityCalculations:
     """
     Predict relevant properties and make calculations.
@@ -110,7 +110,11 @@ def calculate_solubility(path: str = None,
     logger = create_logger(save_dir=logger)
     if df is None:
         df = pd.read_csv(path)
+    df_wrongsmiles = None
     data = SolubilityData(df=df, validate_smiles=validate_smiles, logger=logger)
+    if validate_smiles:
+        df = data.df
+        df_wrongsmiles = data.df_wrongsmiles
 
     predict_reference_solvents = data.reference_solvents is not None and not len([i for i in data.reference_solvents if i]) == 0
     predict_aqueous = calculate_aqueous or not predict_reference_solvents
@@ -136,75 +140,13 @@ def calculate_solubility(path: str = None,
                                           calculate_t_dep=predict_t_dep,
                                           calculate_t_dep_with_t_dep_hsolu=calculate_t_dep_with_t_dep_hsolu,
                                           logger=logger)
-
-    if export_csv is not None or export_detailed_csv is not None:
-        if predict_aqueous:
-            df['logS_298_from_aq [log10(mol/L)]'] = calculations.logs_298_from_aq
-            df['uncertainty_logS_298_from_aq [log10(mol/L)]'] = calculations.unc_logs_298_from_aq
-        if predict_reference_solvents:
-            df['logS_298_from_ref [log10(mol/L)]'] = calculations.logs_298_from_ref
-            df['uncertainty_logS_298_from_ref [log10(mol/L)]'] = calculations.unc_logs_298_from_ref
-        if predict_t_dep:
-            if predict_aqueous:
-                df['logS_T_from_aq [log10(mol/L)]'] = calculations.logs_T_from_aq
-            if predict_reference_solvents:
-                df['logS_T_from_ref [log10(mol/L)]'] = calculations.logs_T_from_ref
-        if calculate_t_dep_with_t_dep_hsolu:
-            if predict_aqueous:
-                df['logS_T_from_aq_with_T_dep_Hsolu [log10(mol/L)]'] = calculations.logs_T_with_t_dep_hsolu_from_aq
-            if predict_reference_solvents:
-                df['logS_T_from_ref_with_T_dep_Hsolu [log10(mol/L)]'] = calculations.logs_T_with_t_dep_hsolu_from_ref
-            df['error_message_for_T_dep_Hsolu_prediction'] = calculations.logs_T_with_t_dep_hsolu_error_message
-        if export_csv is not None:
-            df.to_csv(export_csv, index=False)
-
-        if export_detailed_csv is not None:
-            df_details = df
-            if calculations.gsolv_298 is not None:
-                df_details['G_solv_298 [kcal/mol]'] = calculations.gsolv_298
-                df_details['uncertainty_G_solv_298 [kcal/mol]'] = calculations.unc_gsolv_298
-                df_details['logK_298 [log10(-)]'] = calculations.logk_298
-                df_details['uncertainty_logK_298 [log10(-)]'] = calculations.unc_logk_298
-            if predict_aqueous:
-                df_details['G_solv_aq_298 [kcal/mol]'] = calculations.gsolv_aq_298
-                df_details['uncertainty_G_solv_aq_298 [kcal/mol]'] = calculations.unc_gsolv_aq_298
-                df_details['logK_aq_298 [log10(-)]'] = calculations.logk_aq_298
-                df_details['uncertainty_logK_aq_298 [log10(-)]'] = calculations.unc_logk_aq_298
-                df_details['logS_aq_298 [log10(mol/L)]'] = calculations.logs_aq_298
-                df_details['uncertainty_logS_aq_298 [log10(mol/L)]'] = calculations.unc_logs_aq_298
-                df_details['logS_298_from_aq [log10(mol/L)]'] = calculations.logs_298_from_aq
-                df_details['uncertainty_logS_298_from_aq [log10(mol/L)]'] = calculations.unc_logs_298_from_aq
-            if predict_reference_solvents:
-                df_details['G_solv_ref_298 [kcal/mol]'] = calculations.gsolv_ref_298
-                df_details['uncertainty_G_solv_ref_298 [kcal/mol]'] = calculations.unc_gsolv_ref_298
-                df_details['logK_ref_298 [log10(-)]'] = calculations.logk_ref_298
-                df_details['uncertainty_logK_ref_298 [log10(-)]'] = calculations.unc_logk_ref_298
-                df_details['logS_298_from_ref [log10(mol/L)]'] = calculations.logs_298_from_ref
-                df_details['uncertainty_logS_298_from_ref [log10(mol/L)]'] = calculations.unc_logs_298_from_ref
-            if predict_t_dep:
-                df_details['H_solv_298 [kcal/mol]'] = calculations.hsolv_298
-                df_details['uncertainty_H_solv_298 [kcal/mol]'] = calculations.unc_hsolv_298
-                df_details['E_solute_parameter'] = calculations.E
-                df_details['uncertainty_E_solute_parameter'] = calculations.unc_E
-                df_details['S_solute_parameter'] = calculations.S
-                df_details['uncertainty_S_solute_parameter'] = calculations.unc_S
-                df_details['A_solute_parameter'] = calculations.A
-                df_details['uncertainty_A_solute_parameter'] = calculations.unc_A
-                df_details['B_solute_parameter'] = calculations.B
-                df_details['uncertainty_B_solute_parameter'] = calculations.unc_B
-                df_details['V_solute_parameter'] = calculations.V
-                df_details['L_solute_parameter'] = calculations.L
-                df_details['uncertainty_L_solute_parameter'] = calculations.unc_L
-                df_details['adjacent diol'] = calculations.I_OHadj
-                df_details['non-adjacent diol'] = calculations.I_OHnonadj
-                df_details['amine'] = calculations.I_NH
-                df_details['H_subl_298 [kcal/mol]'] = calculations.hsubl_298
-            if calculate_t_dep_with_t_dep_hsolu:
-                df_details['Cp_gas [J/K/mol]'] = calculations.Cp_gas
-                df_details['Cp_solid [J/K/mol]'] = calculations.Cp_solid
-                df_details['H_solv_T [kcal/mol]'] = calculations.hsolv_T
-            df_details.to_csv(export_detailed_csv, index=False)
-
+    if export_csv is not None:
+        write_results(df,
+                      export_csv,
+                      df_wrongsmiles=df_wrongsmiles,
+                      predictions=predictions,
+                      calculations=calculations,
+                      detail=export_detailed_csv)
     return calculations
 
 
@@ -218,6 +160,12 @@ def write_results(df,
         if predictions.gsolv is not None:
             df['G_solv_298 [kcal/mol]'] = [i for i in predictions.gsolv[0]]
             df['uncertainty_G_solv_298 [kcal/mol]'] = [np.sqrt(i) for i in predictions.gsolv[1]]
+        if predictions.gsolv_aq is not None:
+            df['G_solv_aq_298 [kcal/mol]'] = [i for i in predictions.gsolv_aq[0]]
+            df['uncertainty_G_solv_aq_298 [kcal/mol]'] = [np.sqrt(i) for i in predictions.gsolv_aq[1]]
+        if predictions.gsolv_ref is not None:
+            df['G_solv_ref_298 [kcal/mol]'] = [i for i in predictions.gsolv_ref[0]]
+            df['uncertainty_G_solv_ref_298 [kcal/mol]'] = [np.sqrt(i) for i in predictions.gsolv_ref[1]]
         if predictions.hsolv is not None:
             df['H_solv_298 [kcal/mol]'] = [i for i in predictions.hsolv[0]]
             df['uncertainty_H_solv_298 [kcal/mol]'] = [np.sqrt(i) for i in predictions.hsolv[1]]
@@ -251,9 +199,57 @@ def write_results(df,
             df['uncertainty_SoluParam_B'] = B_unc
             df['uncertainty_SoluParam_L'] = L_unc
 
+        if calculations is not None:
+            if calculations.logs_298_from_aq is not None:
+                df['logS_298_from_aq [log10(mol/L)]'] = calculations.logs_298_from_aq
+                df['uncertainty_logS_298_from_aq [log10(mol/L)]'] = calculations.unc_logs_298_from_aq
+            if calculations.logs_298_from_ref is not None:
+                df['logS_298_from_ref [log10(mol/L)]'] = calculations.logs_298_from_ref
+                df['uncertainty_logS_298_from_ref [log10(mol/L)]'] = calculations.unc_logs_298_from_ref
+            if calculations.logs_T_from_aq is not None:
+                df['logS_T_from_aq [log10(mol/L)]'] = calculations.logs_T_from_aq
+            if calculations.logs_T_from_ref is not None:
+                df['logS_T_from_ref [log10(mol/L)]'] = calculations.logs_T_from_ref
+            if calculations.logs_T_with_t_dep_hsolu_from_aq is not None:
+                df['logS_T_from_aq_with_T_dep_Hsolu [log10(mol/L)]'] = calculations.logs_T_with_t_dep_hsolu_from_aq
+                df['error_message_for_T_dep_Hsolu_prediction'] = calculations.logs_T_with_t_dep_hsolu_error_message
+            if calculations.logs_T_with_t_dep_hsolu_from_ref is not None:
+                df['logS_T_from_ref_with_T_dep_Hsolu [log10(mol/L)]'] = calculations.logs_T_with_t_dep_hsolu_from_ref
+                df['error_message_for_T_dep_Hsolu_prediction'] = calculations.logs_T_with_t_dep_hsolu_error_message
+
+            if detail:
+                if calculations.logk_298 is not None:
+                    df['logK_298 [log10(-)]'] = calculations.logk_298
+                    df['uncertainty_logK_298 [log10(-)]'] = calculations.unc_logk_298
+                if calculations.logk_aq_298 is not None:
+                    df['logK_aq_298 [log10(-)]'] = calculations.logk_aq_298
+                    df['uncertainty_logK_aq_298 [log10(-)]'] = calculations.unc_logk_aq_298
+                if calculations.logs_298_from_aq is not None:
+                    df['logS_298_from_aq [log10(mol/L)]'] = calculations.logs_298_from_aq
+                    df['uncertainty_logS_298_from_aq [log10(mol/L)]'] = calculations.unc_logs_298_from_aq
+                if calculations.logk_ref_298 is not None:
+                    df['logK_ref_298 [log10(-)]'] = calculations.logk_ref_298
+                    df['uncertainty_logK_ref_298 [log10(-)]'] = calculations.unc_logk_ref_298
+                if calculations.logs_298_from_ref is not None:
+                    df['logS_298_from_ref [log10(mol/L)]'] = calculations.logs_298_from_ref
+                    df['uncertainty_logS_298_from_ref [log10(mol/L)]'] = calculations.unc_logs_298_from_ref
+                if calculations.V is not None:
+                    df['V_solute_parameter'] = calculations.V
+                    df['adjacent diol parameter'] = calculations.I_OHadj
+                    df['non-adjacent diol parameter'] = calculations.I_OHnonadj
+                    df['amine parameter'] = calculations.I_NH
+                    df['H_sub_298 [kcal/mol]'] = calculations.hsubl_298
+                if calculations.Cp_gas is not None:
+                    df['Cp_gas [J/K/mol]'] = calculations.Cp_gas
+                    df['Cp_solid [J/K/mol]'] = calculations.Cp_solid
+                    df['H_solv_T [kcal/mol]'] = calculations.hsolv_T
+
     if df_wrongsmiles is not None:
         df = pd.concat([df, df_wrongsmiles], ignore_index=True)
         df.to_csv(export_path, index=False)
+
+    return df
+
 
 df = pd.read_csv('/home/fhvermei/Software/PycharmProjects/ml_solvation_v01/databases/test.csv')
 predictions = predict_property(csv_path=None,
@@ -274,5 +270,5 @@ results = calculate_solubility(path=None,
                                calculate_aqueous=True,
                                reduced_number=False,
                                export_csv='./../results_calculations.csv',
-                               export_detailed_csv='./../detailed_results_calculations.csv',
+                               export_detailed_csv=True,
                                logger='/home/fhvermei/Software/PycharmProjects/ml_solvation_v01/databases/test.log')
