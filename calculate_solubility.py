@@ -76,46 +76,12 @@ def predict_property(csv_path: str = None,
         df_wrongsmiles = data.df_wrongsmiles
     models = SolubilityModels(reduced_number=reduced_number, load_g=gsolv, load_h=hsolv, load_saq=saq, logger=logger)
     predictions = SolubilityPredictions(data, models, predict_solute_parameters=solute_parameters, logger=logger)
+
     if export_csv is not None:
-        if gsolv:
-            df['G_solv_298 [kcal/mol]'] = [i for i in predictions.gsolv[0]]
-            df['uncertainty_G_solv_298 [kcal/mol]'] = [np.sqrt(i) for i in predictions.gsolv[1]]
-        if hsolv:
-            df['H_solv_298 [kcal/mol]'] = [i for i in predictions.hsolv[0]]
-            df['uncertainty_H_solv_298 [kcal/mol]'] = [np.sqrt(i) for i in predictions.hsolv[1]]
-        if saq:
-            df['logS_aq_298 [log10(mol/L)]'] = [i for i in predictions.saq[0]]
-            df['uncertainty_logS_aq_298 [log10(mol/L)]'] = [np.sqrt(i) for i in predictions.saq[1]]
-        if solute_parameters:
-            E, S, A, B, L = [], [], [], [], []
-            for i in predictions.solute_parameters[0]:
-                E.append(i[0])
-                S.append(i[1])
-                A.append(i[2])
-                B.append(i[3])
-                L.append(i[4])
-            df['SoluParam_E'] = E
-            df['SoluParam_S'] = S
-            df['SoluParam_A'] = A
-            df['SoluParam_B'] = B
-            df['SoluParam_L'] = L
-
-            E_unc, S_unc, A_unc, B_unc, L_unc = [], [], [], [], []
-            for i in predictions.solute_parameters[1]:
-                E_unc.append(i[0])
-                S_unc.append(i[1])
-                A_unc.append(i[2])
-                B_unc.append(i[3])
-                L_unc.append(i[4])
-            df['uncertainty_SoluParam_E'] = E_unc
-            df['uncertainty_SoluParam_S'] = S_unc
-            df['uncertainty_SoluParam_A'] = A_unc
-            df['uncertainty_SoluParam_B'] = B_unc
-            df['uncertainty_SoluParam_L'] = L_unc
-
-        if df_wrongsmiles is not None:
-            df = pd.concat([df, df_wrongsmiles], ignore_index=True)
-            df.to_csv(export_csv, index=False)
+        write_results(df,
+                      export_csv,
+                      df_wrongsmiles=df_wrongsmiles,
+                      predictions=predictions)
 
     return predictions
 
@@ -241,6 +207,53 @@ def calculate_solubility(path: str = None,
 
     return calculations
 
+
+def write_results(df,
+                  export_path,
+                  df_wrongsmiles=None,
+                  predictions:SolubilityPredictions = None,
+                  calculations:SolubilityCalculations = None,
+                  detail=False):
+    if predictions:
+        if predictions.gsolv is not None:
+            df['G_solv_298 [kcal/mol]'] = [i for i in predictions.gsolv[0]]
+            df['uncertainty_G_solv_298 [kcal/mol]'] = [np.sqrt(i) for i in predictions.gsolv[1]]
+        if predictions.hsolv is not None:
+            df['H_solv_298 [kcal/mol]'] = [i for i in predictions.hsolv[0]]
+            df['uncertainty_H_solv_298 [kcal/mol]'] = [np.sqrt(i) for i in predictions.hsolv[1]]
+        if predictions.saq is not None:
+            df['logS_aq_298 [log10(mol/L)]'] = [i for i in predictions.saq[0]]
+            df['uncertainty_logS_aq_298 [log10(mol/L)]'] = [np.sqrt(i) for i in predictions.saq[1]]
+        if predictions.solute_parameters is not None:
+            E, S, A, B, L = [], [], [], [], []
+            for i in predictions.solute_parameters[0]:
+                E.append(i[0])
+                S.append(i[1])
+                A.append(i[2])
+                B.append(i[3])
+                L.append(i[4])
+            df['SoluParam_E'] = E
+            df['SoluParam_S'] = S
+            df['SoluParam_A'] = A
+            df['SoluParam_B'] = B
+            df['SoluParam_L'] = L
+
+            E_unc, S_unc, A_unc, B_unc, L_unc = [], [], [], [], []
+            for i in predictions.solute_parameters[1]:
+                E_unc.append(i[0])
+                S_unc.append(i[1])
+                A_unc.append(i[2])
+                B_unc.append(i[3])
+                L_unc.append(i[4])
+            df['uncertainty_SoluParam_E'] = E_unc
+            df['uncertainty_SoluParam_S'] = S_unc
+            df['uncertainty_SoluParam_A'] = A_unc
+            df['uncertainty_SoluParam_B'] = B_unc
+            df['uncertainty_SoluParam_L'] = L_unc
+
+    if df_wrongsmiles is not None:
+        df = pd.concat([df, df_wrongsmiles], ignore_index=True)
+        df.to_csv(export_path, index=False)
 
 df = pd.read_csv('/home/fhvermei/Software/PycharmProjects/ml_solvation_v01/databases/test.csv')
 predictions = predict_property(csv_path=None,
