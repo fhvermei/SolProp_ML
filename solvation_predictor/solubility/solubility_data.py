@@ -11,7 +11,6 @@ class SolubilityData:
             If calculations use experimental reference solubility 'reference_solubility' and 'reference_solvent' have to be specified
             :param validate_smiles: validate the smiles and convert the inchis
         """
-        self.df = df
         self.smiles_pairs = []
         self.temperatures = None
         self.reference_solubility = None
@@ -19,6 +18,7 @@ class SolubilityData:
         self.validate = validate_smiles
         if df is not None:
             self.get_data_from_df(logger=logger)
+            self.df = df
         else:
             raise ValueError('A dataframe needs to be provided with columns \'solvent\', \'solute\', '
                              '\'temperature\' \'logS_ref\', and \'solvent_ref\', '
