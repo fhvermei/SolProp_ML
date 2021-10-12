@@ -25,6 +25,22 @@ def create_logger(save_dir=None):
     return logger
 
 
+def convert_arrays_to_df(solvent_smiles,
+                         solute_smiles,
+                         temperatures=None,
+                         reference_solubility=None,
+                         reference_solvent=None):
+    df = pd.DataFrame()
+    df['solvent'] = solvent_smiles
+    df['solute'] = solute_smiles
+    if temperatures is not None:
+        df['temperature'] = temperatures
+    if reference_solubility is not None:
+        df['reference_solubility'] = reference_solubility
+        df['reference_solvent'] = reference_solvent
+    return df
+
+
 def predict_property(csv_path: str = None,
                      df: pd.DataFrame = None,
                      gsolv: bool = False,
