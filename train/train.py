@@ -1,5 +1,4 @@
 import csv
-import os
 import math
 
 from solvation_predictor.inp import InputArguments

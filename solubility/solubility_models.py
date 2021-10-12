@@ -1,6 +1,6 @@
 import os
 
-from solvation_predictor import inp_logSaq, inp_Hsolv, inp_Gsolv
+from solvation_predictor import inp_logSaq, inp_Gsolv, inp_Hsolv
 from solvation_predictor.train.train import load_checkpoint, load_scaler
 
 
@@ -28,7 +28,7 @@ class SolubilityModels:
             :returns: model input, model scalers, and model parameters
         """
         number = 10 if not reduced_number else 3
-        path = '/home/fhvermei/Software/PycharmProjects/ml_solvation_v01/'
+        path = './../'
         paths = [os.path.join(path, 'trained_models', 'Gsolv', 'model_Gsolv_' + str(i) + '.pt')
                        for i in range(number)]
         logger.info(f'Loading {number} solvation free energy models from {path}')
@@ -55,7 +55,7 @@ class SolubilityModels:
             :returns: model input, model scalers, and model parameters
         """
         number = 12 if not reduced_number else 3
-        path = '/home/fhvermei/Software/PycharmProjects/ml_solvation_v01/'
+        path = '//'
 
         paths = [os.path.join(path, 'trained_models', 'Hsolv', 'model_Hsolv_' + str(i) + '.pt')
                        for i in range(number)]
@@ -78,7 +78,7 @@ class SolubilityModels:
             :returns: model input, model scalers, and model parameters
         """
         number = 30 if not reduced_number else 3
-        path = '/home/fhvermei/Software/PycharmProjects/ml_solvation_v01/'
+        path = '//'
 
         paths = [os.path.join(path, 'trained_models', 'Saq', 'model_Saq_' + str(i) + '.pt')
                        for i in range(number)]
