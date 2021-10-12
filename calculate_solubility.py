@@ -25,7 +25,7 @@ def create_logger(save_dir=None):
     return logger
 
 
-def predict_property(path: str = None,
+def predict_property(csv_path: str = None,
                      df: pd.DataFrame = None,
                      gsolv: bool = False,
                      hsolv: bool = False,
@@ -38,7 +38,7 @@ def predict_property(path: str = None,
     """
     Function to only predict some properties. The desired ones can be specified with arguments.
     Data is read from a csv file or a pandas dataframe.
-        :param path: specifies the path to the csv file
+        :param csv_path: specifies the path to the csv file
         :param df: direct import of pandas dataframe
         :param gsolv: predict solvation free energies
         :param hsolv: predict solvation enthalpies
@@ -52,7 +52,7 @@ def predict_property(path: str = None,
     """
     logger = create_logger(save_dir=logger)
     if df is None:
-        df = pd.read_csv(path)
+        df = pd.read_csv(csv_path)
     data = SolubilityData(df=df, validate_smiles=validate_smiles, logger=logger)
     models = SolubilityModels(reduced_number=reduced_number, load_g=gsolv, load_h=hsolv, load_saq=saq, logger=logger)
     predictions = SolubilityPredictions(data, models, predict_solute_parameters=solute_parameters, logger=logger)
@@ -220,7 +220,7 @@ def calculate_solubility(path: str = None,
 
 
 df = pd.read_csv('/home/fhvermei/Software/PycharmProjects/ml_solvation_v01/databases/test.csv')
-predictions = predict_property(path=None,
+predictions = predict_property(csv_path=None,
                                df=df,
                                gsolv=True,
                                hsolv=False,
