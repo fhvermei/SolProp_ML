@@ -35,11 +35,11 @@ class SolubilityPredictions:
         self.solute_parameters = None
 
         if self.data is not None and self.models is not None:
-            self.make_predictions(predict_aqueous=predict_aqueous,
-                                  predict_reference_solvents=predict_reference_solvents,
-                                  predict_t_dep=predict_t_dep,
-                                  predict_solute_parameters=predict_solute_parameters,
-                                  logger=logger)
+            self.make_all_model_predictions(predict_aqueous=predict_aqueous,
+                                            predict_reference_solvents=predict_reference_solvents,
+                                            predict_t_dep=predict_t_dep,
+                                            predict_solute_parameters=predict_solute_parameters,
+                                            logger=logger)
 
     def set_data(self, data: SolubilityData):
         self.data = data
@@ -47,8 +47,8 @@ class SolubilityPredictions:
     def set_models(self, models: SolubilityModels):
         self.models = models
 
-    def make_predictions(self, predict_aqueous: bool = False, predict_reference_solvents: bool = False,
-                         predict_t_dep: bool = False, predict_solute_parameters: bool = False, logger=None):
+    def make_all_model_predictions(self, predict_aqueous: bool = False, predict_reference_solvents: bool = False,
+                                   predict_t_dep: bool = False, predict_solute_parameters: bool = False, logger=None):
 
         self.gsolv = self.make_gsolv_predictions(logger=logger) if self.models.g_models is not None else None
         self.hsolv = self.make_hsolv_predictions(logger=logger) if self.models.h_models is not None else None
