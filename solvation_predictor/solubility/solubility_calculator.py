@@ -22,7 +22,7 @@ class SolubilityCalculations:
         78: 48.45, 79: 47.20, 80: 45.95, 81: 44.70, 82: 43.45, 83: 42.19, 84: 40.94, 85: 39.69, 86: 38.44,
     }
 
-    def __init__(self, predictions: SolubilityPredictions,
+    def __init__(self, predictions: SolubilityPredictions = None,
                  calculate_aqueous: bool = None,
                  calculate_reference_solvents: bool = None,
                  calculate_t_dep: bool = None,
@@ -30,23 +30,56 @@ class SolubilityCalculations:
                  logger=None):
 
         logger.info('Start making logS calculations')
-        self.gsolv_298 = np.array(predictions.gsolv[0]) if predictions.gsolv else None  # in kcal/mol
-        self.unc_gsolv_298 = np.sqrt(np.array(predictions.gsolv[1])) if predictions.gsolv else None
+        self.gsolv_298, self.unc_gsolv_298 = None, None
+        self.logk_298, self.unc_logk_298 = None, None
+        self.gsolv_aq_298, self.unc_gsolv_aq_298 = None, None
+        self.logk_aq_298, self.unc_logk_aq_298 = None, None
+        self.logs_aq_298, self.unc_logs_aq_298 = None, None
+        self.logs_298_from_aq, self.unc_logs_298_from_aq = None, None
+        self.gsolv_ref_298, self.unc_gsolv_ref_298 = None, None
+        self.logk_ref_298, self.unc_logk_ref_298 = None, None
+        self.logs_ref_298 = None
+        self.logs_298_from_ref, self.unc_logs_298_from_ref = None, None
+        self.hsolv_298, self.unc_hsolv_298 = None, None
 
+        self.E, self.S, self.A, self.B, self.L = None, None, None, None, None
+        self.unc_E, self.unc_S, self.unc_A, self.unc_B, self.unc_L = None, None, None, None, None
+        self.V = None
+        self.I_OHadj, self.I_OHnonadj, self.I_NH = None, None, None
+        self.hsubl_298 = None
+        self.Cp_solid, self.Cp_gas = None, None
+        self.logs_T_from_aq, self.logs_T_with_t_dep_hsolu_from_aq = None, None
+        self.logs_T_with_t_dep_hsolu_error_message, self.hsolv_T = None, None
+        self.logs_T_from_ref, self.logs_T_with_t_dep_hsolu_from_ref = None, None
+
+        if predictions is not None:
+            self.make_calculations_298(predictions=predictions,
+                                       calculate_aqueous=calculate_aqueous,
+                                       calculate_reference_solvents=calculate_reference_solvents,
+                                       logger=logger)
+            if calculate_t_dep:
+                self.make_calculations_t(predictions=predictions,
+                                         calculate_aqueous=calculate_aqueous,
+                                         calculate_reference_solvents=calculate_reference_solvents,
+                                         calculate_t_dep_with_t_dep_hsolu=calculate_t_dep_with_t_dep_hsolu,
+                                         logger=logger)
+
+    def make_calculations_298(self, predictions: SolubilityPredictions,
+                              calculate_aqueous: bool = None,
+                              calculate_reference_solvents: bool = None,
+                              logger=None):
+
+        self.gsolv_298, self.unc_gsolv_298 = self.extract_predictions(predictions.gsolv)
         self.logk_298 = self.calculate_logk(gsolv=self.gsolv_298)
         self.unc_logk_298 = self.calculate_logk(gsolv=self.unc_gsolv_298, uncertainty=True)
 
         if calculate_aqueous:
             logger.info('Calculating logS at 298K from predicted aqueous solubility')
-            self.gsolv_aq_298 = np.array(predictions.gsolv_aq[0]) if predictions.gsolv_aq else None  # in kcal/mol
-            self.unc_gsolv_aq_298 = np.sqrt(np.array(predictions.gsolv_aq[1])) if predictions.gsolv_aq else None
-
+            self.gsolv_aq_298,  self.unc_gsolv_aq_298 = self.extract_predictions(predictions.gsolv_aq)
             self.logk_aq_298 = self.calculate_logk(gsolv=self.gsolv_aq_298)
             self.unc_logk_aq_298 = self.calculate_logk(gsolv=self.unc_gsolv_aq_298, uncertainty=True)
 
-            self.logs_aq_298 = np.array(predictions.saq[0]) if predictions.saq else None  # in log10(mol/L)
-            self.unc_logs_aq_298 = np.sqrt(np.array(predictions.saq[1])) if predictions.saq else None
-
+            self.logs_aq_298, self.unc_logs_aq_298 = self.extract_predictions(predictions.saq)
             self.logs_298_from_aq = self.calculate_logs_298(logk=self.logk_298,
                                                             logk_ref=self.logk_aq_298,
                                                             logs_ref=self.logs_aq_298)
@@ -57,8 +90,7 @@ class SolubilityCalculations:
 
         if calculate_reference_solvents:
             logger.info('Calculating logS at 298K from reference solubility')
-            self.gsolv_ref_298 = np.array(predictions.gsolv_ref[0]) if predictions.gsolv_ref else None  # in kcal/mol
-            self.unc_gsolv_ref_298 = np.sqrt(np.array(predictions.gsolv_ref[1])) if predictions.gsolv_ref else None
+            self.gsolv_ref_298, self.unc_gsolv_ref_298 = self.extract_predictions(predictions.gsolv_ref)
 
             self.logk_ref_298 = self.calculate_logk(gsolv=self.gsolv_ref_298)
             self.unc_logk_ref_298 = self.calculate_logk(gsolv=self.unc_gsolv_ref_298, uncertainty=True)
@@ -72,69 +104,75 @@ class SolubilityCalculations:
                                                                  logs_ref=0.0,
                                                                  uncertainty=True)
 
-        if calculate_t_dep:
-            self.hsolv_298 = np.array(predictions.hsolv[0]) if predictions.hsolv else None  # in kcal/mol
-            self.unc_hsolv_298 = np.sqrt(np.array(predictions.hsolv[1])) if predictions.hsolv else None
+    def make_calculations_t(self, predictions: SolubilityPredictions,
+                            calculate_aqueous: bool = None,
+                            calculate_reference_solvents: bool = None,
+                            calculate_t_dep_with_t_dep_hsolu: bool = None,
+                            logger=None):
 
-            if predictions.solute_parameters:
-                self.E, self.S, self.A, self.B, self.L = self.get_solute_parameters(predictions.solute_parameters[0])
-                self.unc_E, self.unc_S, self.unc_A, self.unc_B, self.unc_L = self.get_solute_parameters(predictions.solute_parameters[1])
-            else:
-                self.E, self.S, self.A, self.B, self.L = None, None, None, None, None
-                self.unc_E, self.unc_S, self.unc_A, self.unc_B, self.unc_L = None, None, None, None, None
+        self.hsolv_298, self.unc_hsolv_298 = self.extract_predictions(predictions.hsolv)
 
-            self.V = np.array([self.calculate_solute_parameter_v(sm[1]) for sm in predictions.data.smiles_pairs])
-            self.I_OHadj, self.I_OHnonadj, self.I_NH = self.get_diol_amine_ids(predictions.data.smiles_pairs)
-            self.hsubl_298 = self.get_hsubl_298(self.E, self.S, self.A, self.B, self.V,
-                                                I_OHadj=self.I_OHadj,
-                                                I_OHnonadj=self.I_OHnonadj,
-                                                I_NH=self.I_NH)
+        if predictions.solute_parameters:
+            self.E, self.S, self.A, self.B, self.L = self.get_solute_parameters(predictions.solute_parameters[0])
+            self.unc_E, self.unc_S, self.unc_A, self.unc_B, self.unc_L = self.get_solute_parameters(predictions.solute_parameters[1])
 
+        self.V = np.array([self.calculate_solute_parameter_v(sm[1]) for sm in predictions.data.smiles_pairs])
+        self.I_OHadj, self.I_OHnonadj, self.I_NH = self.get_diol_amine_ids(predictions.data.smiles_pairs)
+        self.hsubl_298 = self.get_hsubl_298(self.E, self.S, self.A, self.B, self.V,
+                                            I_OHadj=self.I_OHadj,
+                                            I_OHnonadj=self.I_OHnonadj,
+                                            I_NH=self.I_NH)
+
+        if calculate_t_dep_with_t_dep_hsolu:
+            self.Cp_solid = self.get_Cp_solid(self.E, self.S, self.A, self.B, self.V,
+                                              I_OHnonadj=self.I_OHnonadj)
+            self.Cp_gas = self.get_Cp_gas(self.E, self.S, self.A, self.B, self.V)
+
+            # load solvent's CoolProp name, critical temperature, and critical density data
+            current_path = os.path.dirname(os.path.abspath(__file__))
+            crit_data_path = os.path.join(current_path, 'solvent_crit_data.json')
+            with open(crit_data_path) as f:
+                solv_info_dict = json.load(f)  # inchi is used as a solvent key
+
+            coolprop_name_list, crit_t_list, crit_d_list = \
+                self.get_solvent_info(predictions.data.smiles_pairs, solv_info_dict)
+
+        if calculate_aqueous:
+            logger.info('Calculating T-dep logS from predicted aqueous solubility using H_solu(298K) approximation')
+            self.logs_T_from_aq = self.calculate_logs_t(hsolv_298=self.hsolv_298,
+                                                        hsubl_298=self.hsubl_298,
+                                                        logs_298=self.logs_298_from_aq,
+                                                        temperatures=predictions.data.temperatures)
             if calculate_t_dep_with_t_dep_hsolu:
-                self.Cp_solid = self.get_Cp_solid(self.E, self.S, self.A, self.B, self.V,
-                                                  I_OHnonadj=self.I_OHnonadj)
-                self.Cp_gas = self.get_Cp_gas(self.E, self.S, self.A, self.B, self.V)
+                logger.info('Calculating T-dep logS from predicted aqueous solubility using T-dep H_solu')
+                self.logs_T_with_t_dep_hsolu_from_aq, self.logs_T_with_t_dep_hsolu_error_message, self.hsolv_T = \
+                    self.calculate_logs_t_with_t_dep_hsolu_all(
+                    gsolv_298_list=self.gsolv_298, hsolv_298_list=self.hsolv_298, hsubl_298_list=self.hsubl_298,
+                    Cp_solid_list=self.Cp_solid, Cp_gas_list=self.Cp_gas, logs_298_list=self.logs_298_from_aq,
+                    T_list=predictions.data.temperatures, coolprop_name_list=coolprop_name_list,
+                    Tc_list=crit_t_list, rho_c_list=crit_d_list)
 
-                # load solvent's CoolProp name, critical temperature, and critical density data
-                current_path = os.path.dirname(os.path.abspath(__file__))
-                crit_data_path = os.path.join(current_path, 'solvent_crit_data.json')
-                with open(crit_data_path) as f:
-                    self.solv_info_dict = json.load(f)  # inchi is used as a solvent key
+        if calculate_reference_solvents:
+            logger.info('Calculating T-dep logS from reference solubility using H_solu(298K) approximation')
+            self.logs_T_from_ref = self.calculate_logs_t(hsolv_298=self.hsolv_298,
+                                                         hsubl_298=self.hsubl_298,
+                                                         logs_298=self.logs_298_from_ref,
+                                                         temperatures=predictions.data.temperatures)
+            if calculate_t_dep_with_t_dep_hsolu:
+                logger.info( 'Calculating T-dep logS from reference solubility using T-dep H_solu')
+                # since `logs_T_with_t_dep_hsolu_error_message` and `hsolv_T` will be the same whether aqueous
+                # or reference solubility is used, these can be overwritten.
+                self.logs_T_with_t_dep_hsolu_from_ref, self.logs_T_with_t_dep_hsolu_error_message, self.hsolv_T = \
+                    self.calculate_logs_t_with_t_dep_hsolu_all(
+                    gsolv_298_list=self.gsolv_298, hsolv_298_list=self.hsolv_298, hsubl_298_list=self.hsubl_298,
+                    Cp_solid_list=self.Cp_solid, Cp_gas_list=self.Cp_gas, logs_298_list=self.logs_298_from_ref,
+                    T_list=predictions.data.temperatures, coolprop_name_list=coolprop_name_list,
+                    Tc_list=crit_t_list, rho_c_list=crit_d_list)
 
-                self.coolprop_name_list, self.crit_t_list, self.crit_d_list = \
-                    self.get_solvent_info(predictions.data.smiles_pairs, self.solv_info_dict)
-
-            if calculate_aqueous:
-                logger.info('Calculating T-dep logS from predicted aqueous solubility using H_solu(298K) approximation')
-                self.logs_T_from_aq = self.calculate_logs_t(hsolv_298=self.hsolv_298,
-                                                            hsubl_298=self.hsubl_298,
-                                                            logs_298=self.logs_298_from_aq,
-                                                            temperatures=predictions.data.temperatures)
-                if calculate_t_dep_with_t_dep_hsolu:
-                    logger.info('Calculating T-dep logS from predicted aqueous solubility using T-dep H_solu')
-                    self.logs_T_with_t_dep_hsolu_from_aq, self.logs_T_with_t_dep_hsolu_error_message, self.hsolv_T = \
-                        self.calculate_logs_t_with_t_dep_hsolu_all(
-                        gsolv_298_list=self.gsolv_298, hsolv_298_list=self.hsolv_298, hsubl_298_list=self.hsubl_298,
-                        Cp_solid_list=self.Cp_solid, Cp_gas_list=self.Cp_gas, logs_298_list=self.logs_298_from_aq,
-                        T_list=predictions.data.temperatures, coolprop_name_list=self.coolprop_name_list,
-                        Tc_list=self.crit_t_list, rho_c_list=self.crit_d_list)
-
-            if calculate_reference_solvents:
-                logger.info('Calculating T-dep logS from reference solubility using H_solu(298K) approximation')
-                self.logs_T_from_ref = self.calculate_logs_t(hsolv_298=self.hsolv_298,
-                                                             hsubl_298=self.hsubl_298,
-                                                             logs_298=self.logs_298_from_ref,
-                                                             temperatures=predictions.data.temperatures)
-                if calculate_t_dep_with_t_dep_hsolu:
-                    logger.info( 'Calculating T-dep logS from reference solubility using T-dep H_solu')
-                    # since `logs_T_with_t_dep_hsolu_error_message` and `hsolv_T` will be the same whether aqueous
-                    # or reference solubility is used, these can be overwritten.
-                    self.logs_T_with_t_dep_hsolu_from_ref, self.logs_T_with_t_dep_hsolu_error_message, self.hsolv_T = \
-                        self.calculate_logs_t_with_t_dep_hsolu_all(
-                        gsolv_298_list=self.gsolv_298, hsolv_298_list=self.hsolv_298, hsubl_298_list=self.hsubl_298,
-                        Cp_solid_list=self.Cp_solid, Cp_gas_list=self.Cp_gas, logs_298_list=self.logs_298_from_ref,
-                        T_list=predictions.data.temperatures, coolprop_name_list=self.coolprop_name_list,
-                        Tc_list=self.crit_t_list, rho_c_list=self.crit_d_list)
+    def extract_predictions(self, predictions):
+        pred = np.array(predictions[0]) if predictions else None
+        unc = np.array(predictions[1]) if predictions else None
+        return pred, unc
 
     def calculate_logs_t(self, hsolv_298=None, hsubl_298=None, logs_298=None, temperatures=None):
         hsolu_298 = hsolv_298 + hsubl_298
