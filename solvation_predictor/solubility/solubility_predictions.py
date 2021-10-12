@@ -8,8 +8,8 @@ from solvation_predictor.train.evaluate import predict
 
 
 class SolubilityPredictions:
-    def __init__(self, data: SolubilityData,
-                 models: SolubilityModels,
+    def __init__(self, data: SolubilityData = None,
+                 models: SolubilityModels = None,
                  predict_aqueous: bool = False,
                  predict_reference_solvents: bool = False,
                  predict_t_dep: bool = False,
@@ -24,15 +24,40 @@ class SolubilityPredictions:
             :param predict_t_dep: if you want to calculate temperature dependent solubility
             :param predict_solute_parameters: if you want to predict solute parameters
         """
+        self.data = data if data is not None else None
+        self.models = models if models is not None else None
+
+        self.gsolv = None
+        self.hsolv = None
+        self.saq = None
+        self.gsolv_aq = None
+        self.gsolv_ref = None
+        self.solute_parameters = None
+
+        if self.data is not None and self.models is not None:
+            self.make_predictions(predict_aqueous=predict_aqueous,
+                                  predict_reference_solvents=predict_reference_solvents,
+                                  predict_t_dep=predict_t_dep,
+                                  predict_solute_parameters=predict_solute_parameters,
+                                  logger=logger)
+
+    def set_data(self, data: SolubilityData):
         self.data = data
+
+    def set_models(self, models: SolubilityModels):
         self.models = models
 
-        self.gsolv = self.make_gsolv_predictions(logger=logger) if models.g_models is not None else None
-        self.hsolv = self.make_hsolv_predictions(logger=logger) if models.h_models is not None else None
-        self.saq = self.make_saq_predictions(logger=logger) if models.saq_models is not None else None
+    def make_predictions(self, predict_aqueous: bool = False, predict_reference_solvents: bool = False,
+                         predict_t_dep: bool = False, predict_solute_parameters: bool = False, logger=None):
 
-        self.gsolv_aq = self.make_gsolvaq_predictions(logger=logger) if predict_aqueous else None
-        self.gsolv_ref = self.make_gsolvref_predictions(logger=logger) if predict_reference_solvents else None
+        self.gsolv = self.make_gsolv_predictions(logger=logger) if self.models.g_models is not None else None
+        self.hsolv = self.make_hsolv_predictions(logger=logger) if self.models.h_models is not None else None
+        self.saq = self.make_saq_predictions(logger=logger) if self.models.saq_models is not None else None
+
+        self.gsolv_aq = self.make_gsolvaq_predictions(logger=logger) \
+            if predict_aqueous and self.models.g_models is not None else None
+        self.gsolv_ref = self.make_gsolvref_predictions(logger=logger) \
+            if predict_reference_solvents and self.models.g_models is not None else None
 
         self.solute_parameters = self.make_soluteparameter_predictions(logger=logger) \
             if predict_t_dep or predict_solute_parameters else None
