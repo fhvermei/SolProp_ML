@@ -1,6 +1,6 @@
 import pandas as pd
 import rdkit.Chem as Chem
-
+import rdkit.Chem.rdmolops as rdmolops
 
 class SolubilityData:
     def __init__(self, df: pd.DataFrame, validate_smiles: bool = False, logger=None):
@@ -16,6 +16,7 @@ class SolubilityData:
         self.reference_solubility = None
         self.reference_solvents = None
         self.validate = validate_smiles
+        self.validate_smiles_error_messages = None
         if df is not None:
             self.get_data_from_df(logger=logger)
             self.df = df
@@ -53,8 +54,10 @@ class SolubilityData:
 
     def validate_smiles(self):
         new_smiles_pairs = []
+        wrong_smiles = dict()
         for pair in self.smiles_pairs:
             solvent_smiles = None
+            solvent_charge = 0
             if pair[0] is not None:
                 if 'InChI' in pair[0]:
                     mol = Chem.MolFromInchi(pair[0])
@@ -62,15 +65,30 @@ class SolubilityData:
                     mol = Chem.MolFromSmiles(pair[0])
                 try:
                     solvent_smiles = Chem.MolToSmiles(mol)
+                    solvent_charge = rdmolops.GetFormalCharge()
                 except:
-                    raise ValueError(f'solvent id {pair[0]} cannot be converted by RDKit')
+                    wrong_smiles[pair[0]] = f'solvent id {pair[0]} cannot be converted by RDKit'
+                if solvent_charge > 0 or solvent_charge < 0:
+                    solvent_smiles = None
+                    wrong_smiles[pair[0]] = f'solvent id {pair[0]} has charge {solvent_charge} calculated by RDKit, ' \
+                                            f'only neutral molecules are allowed'
+            solute_smiles = None
+            solute_charge = 0
             if 'InChI' in pair[1]:
                 mol = Chem.MolFromInchi(pair[1])
             else:
                 mol = Chem.MolFromSmiles(pair[1])
             try:
                 solute_smiles = Chem.MolToSmiles(mol)
+                solute_charge = rdmolops.GetFormalCharge()
             except:
-                raise ValueError(f'solute id {pair[1]} cannot be converted by RDKit')
-            new_smiles_pairs.append((solvent_smiles, solute_smiles))
+                wrong_smiles[pair[1]] = f'solute id {pair[1]} cannot be converted by RDKit'
+
+            if solute_charge > 0 or solute_charge < 0:
+                solvent_smiles = None
+                wrong_smiles[pair[1]] = f'solvent id {pair[1]} has charge {solute_charge} calculated by RDKit, ' \
+                                        f'only neutral molecules are allowed'
+            if solvent_smiles is not None and solute_smiles is not None:
+                new_smiles_pairs.append((solvent_smiles, solute_smiles))
         self.smiles_pairs = new_smiles_pairs
+        self.validate_smiles_error_messages = wrong_smiles
