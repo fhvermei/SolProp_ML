@@ -33,7 +33,7 @@ class SolubilityModels:
             :returns: model input, model scalers, and model parameters
         """
         number = 10 if not reduced_number else 3
-        path = '../../'
+        path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         paths = [os.path.join(path, 'trained_models', 'Gsolv', 'model_Gsolv_' + str(i) + '.pt')
                        for i in range(number)]
         logger.info(f'Loading {number} solvation free energy models from {path}')
@@ -60,7 +60,7 @@ class SolubilityModels:
             :returns: model input, model scalers, and model parameters
         """
         number = 12 if not reduced_number else 3
-        path = '//'
+        path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
         paths = [os.path.join(path, 'trained_models', 'Hsolv', 'model_Hsolv_' + str(i) + '.pt')
                        for i in range(number)]
@@ -83,7 +83,7 @@ class SolubilityModels:
             :returns: model input, model scalers, and model parameters
         """
         number = 30 if not reduced_number else 3
-        path = '//'
+        path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
         paths = [os.path.join(path, 'trained_models', 'Saq', 'model_Saq_' + str(i) + '.pt')
                        for i in range(number)]
