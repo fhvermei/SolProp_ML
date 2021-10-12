@@ -28,7 +28,7 @@ class SolubilityModels:
             :returns: model input, model scalers, and model parameters
         """
         number = 10 if not reduced_number else 3
-        path = './../'
+        path = '../../'
         paths = [os.path.join(path, 'trained_models', 'Gsolv', 'model_Gsolv_' + str(i) + '.pt')
                        for i in range(number)]
         logger.info(f'Loading {number} solvation free energy models from {path}')
