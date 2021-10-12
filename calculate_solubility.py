@@ -69,7 +69,11 @@ def predict_property(csv_path: str = None,
     logger = create_logger(save_dir=logger)
     if df is None:
         df = pd.read_csv(csv_path)
+    df_wrongsmiles = None
     data = SolubilityData(df=df, validate_smiles=validate_smiles, logger=logger)
+    if validate_smiles:
+        df = data.df
+        df_wrongsmiles = data.df_wrongsmiles
     models = SolubilityModels(reduced_number=reduced_number, load_g=gsolv, load_h=hsolv, load_saq=saq, logger=logger)
     predictions = SolubilityPredictions(data, models, predict_solute_parameters=solute_parameters, logger=logger)
     if export_csv is not None:
@@ -109,6 +113,8 @@ def predict_property(csv_path: str = None,
             df['uncertainty_SoluParam_B'] = B_unc
             df['uncertainty_SoluParam_L'] = L_unc
         df.to_csv(export_csv, index=False)
+        if df_wrongsmiles is not None:
+            df_wrongsmiles.to_csv('wrong_smiles.csv', index=False)
 
     return predictions
 
@@ -243,7 +249,7 @@ predictions = predict_property(csv_path=None,
                                saq=False,
                                solute_parameters=False,
                                reduced_number=False,
-                               validate_smiles=False,
+                               validate_smiles=True,
                                export_csv='./../results_predictions.csv',
                                logger='/home/fhvermei/Software/PycharmProjects/ml_solvation_v01/databases/test.log')
 
