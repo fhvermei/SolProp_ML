@@ -2,6 +2,7 @@ import pandas as pd
 import rdkit.Chem as Chem
 import rdkit.Chem.rdmolops as rdmolops
 
+
 class SolubilityData:
     def __init__(self, df: pd.DataFrame, validate_smiles: bool = False, logger=None):
         """Reads in data used to calculate the solubility of neutral solutes in organic solvents
@@ -11,6 +12,7 @@ class SolubilityData:
             If calculations use experimental reference solubility 'reference_solubility' and 'reference_solvent' have to be specified
             :param validate_smiles: validate the smiles and convert the inchis
         """
+        self.df = df
         self.smiles_pairs = []
         self.temperatures = None
         self.reference_solubility = None
@@ -19,7 +21,6 @@ class SolubilityData:
         self.validate_smiles_error_messages = None
         if df is not None:
             self.get_data_from_df(logger=logger)
-            self.df = df
         else:
             raise ValueError('A dataframe needs to be provided with columns \'solvent\', \'solute\', '
                              '\'temperature\' \'logS_ref\', and \'solvent_ref\', '
