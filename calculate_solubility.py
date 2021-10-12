@@ -30,6 +30,17 @@ def convert_arrays_to_df(solvent_smiles,
                          temperatures=None,
                          reference_solubility=None,
                          reference_solvent=None):
+    """
+    Function to convert arrays (e.g. for reading from website) to a pandas dataframe that is
+    used further in the software. Note that all input arrays need the same size.
+        :param solvent_smiles: array of solvent smiles
+        :param solute_smiles: array of solute smiles
+        :param temperatures: array of temperatures
+        :param reference_solubility: array of the reference solubility in another solvent
+        :param reference_solvent: array of the solvent smiles associated with the reference solubility
+
+        :returns: pandas dataframe with all data
+    """
     df = pd.DataFrame()
     df['solvent'] = solvent_smiles
     df['solute'] = solute_smiles
@@ -78,10 +89,10 @@ def predict_property(csv_path: str = None,
     predictions = SolubilityPredictions(data, models, predict_solute_parameters=solute_parameters, logger=logger)
 
     if export_csv is not None:
-        write_results(df,
-                      export_csv,
-                      df_wrongsmiles=df_wrongsmiles,
-                      predictions=predictions)
+        df = write_results(df,
+                           export_csv,
+                           df_wrongsmiles=df_wrongsmiles,
+                           predictions=predictions)
 
     return predictions
 
@@ -141,21 +152,32 @@ def calculate_solubility(path: str = None,
                                           calculate_t_dep_with_t_dep_hsolu=calculate_t_dep_with_t_dep_hsolu,
                                           logger=logger)
     if export_csv is not None:
-        write_results(df,
-                      export_csv,
-                      df_wrongsmiles=df_wrongsmiles,
-                      predictions=predictions,
-                      calculations=calculations,
-                      detail=export_detailed_csv)
+        df = write_results(df,
+                           export_csv,
+                           df_wrongsmiles=df_wrongsmiles,
+                           predictions=predictions,
+                           calculations=calculations,
+                           detail=export_detailed_csv)
     return calculations
 
 
 def write_results(df,
-                  export_path,
+                  export_path=None,
                   df_wrongsmiles=None,
                   predictions:SolubilityPredictions = None,
                   calculations:SolubilityCalculations = None,
                   detail=False):
+    """
+    Function to write the predictions and calculations to a pandas dataframe and export to csv
+        :param df: initial pandas dataframe with validated input data
+        :param export_path: path to export the csv file if export is required
+        :param df_wrongsmiles: the pandas dataframe with wrong smiles and error messages, created after validation
+        :param predictions: the predictions to write, of the class SolubilityPredictions
+        :param calculations: the calculations to write, of the class SolubilityCalculations
+        :param detail: boolean is detailed calculations are required
+
+        :returns: pandas dataframe with predictions and calculations
+    """
     if predictions:
         if predictions.gsolv is not None:
             df['G_solv_298 [kcal/mol]'] = [i for i in predictions.gsolv[0]]
@@ -246,6 +268,7 @@ def write_results(df,
 
     if df_wrongsmiles is not None:
         df = pd.concat([df, df_wrongsmiles], ignore_index=True)
+    if export_path is not None:
         df.to_csv(export_path, index=False)
 
     return df
