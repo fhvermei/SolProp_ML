@@ -6,9 +6,9 @@ from solvation_predictor.train.train import load_checkpoint, load_scaler
 
 class SolubilityModels:
     def __init__(self, reduced_number: bool = False,
-                 load_g: bool = True,
-                 load_h: bool = True,
-                 load_saq: bool = True,
+                 load_g: bool = False,
+                 load_h: bool = False,
+                 load_saq: bool = False,
                  logger=None):
         """
         Loads the required models for solvation free energy, enthalpy, and aqueous solubility.
@@ -17,9 +17,14 @@ class SolubilityModels:
             :param load_h: load models for solvation enthalpy
             :param load_saq: load models for aqueous solubility
         """
-        self.g_models = self.load_g_models(reduced_number=reduced_number, logger=logger) if load_g else None
-        self.h_models = self.load_h_models(reduced_number=reduced_number, logger=logger) if load_h else None
-        self.saq_models = self.load_saq_models(reduced_number=reduced_number, logger=logger) if load_saq else None
+        self.g_models = None
+        self.h_models = None
+        self.saq_models = None
+
+        if load_g or load_h or load_saq:
+            self.g_models = self.load_g_models(reduced_number=reduced_number, logger=logger) if load_g else None
+            self.h_models = self.load_h_models(reduced_number=reduced_number, logger=logger) if load_h else None
+            self.saq_models = self.load_saq_models(reduced_number=reduced_number, logger=logger) if load_saq else None
 
     def load_g_models(self, reduced_number=False, logger=None):
         """
