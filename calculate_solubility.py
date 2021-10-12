@@ -112,9 +112,10 @@ def predict_property(csv_path: str = None,
             df['uncertainty_SoluParam_A'] = A_unc
             df['uncertainty_SoluParam_B'] = B_unc
             df['uncertainty_SoluParam_L'] = L_unc
-        df.to_csv(export_csv, index=False)
+
         if df_wrongsmiles is not None:
-            df_wrongsmiles.to_csv('wrong_smiles.csv', index=False)
+            df = pd.concat([df, df_wrongsmiles], ignore_index=True)
+            df.to_csv(export_csv, index=False)
 
     return predictions
 
