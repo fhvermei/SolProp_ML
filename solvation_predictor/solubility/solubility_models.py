@@ -9,24 +9,28 @@ class SolubilityModels:
                  load_g: bool = False,
                  load_h: bool = False,
                  load_saq: bool = False,
-                 logger=None):
+                 logger=None,
+                 verbose=True):
         """
         Loads the required models for solvation free energy, enthalpy, and aqueous solubility.
             :param reduced_number: if true, only 3 models are considered per property to make predictions faster
             :param load_g: load models for solvation free energy
             :param load_h: load models for solvation enthalpy
             :param load_saq: load models for aqueous solubility
+            :param logger: logger file
+            :param verbose: whether to show logger info or not
         """
         self.g_models = None
         self.h_models = None
         self.saq_models = None
+        self.logger = logger.info if logger is not None else print
 
         if load_g or load_h or load_saq:
-            self.g_models = self.load_g_models(reduced_number=reduced_number, logger=logger) if load_g else None
-            self.h_models = self.load_h_models(reduced_number=reduced_number, logger=logger) if load_h else None
-            self.saq_models = self.load_saq_models(reduced_number=reduced_number, logger=logger) if load_saq else None
+            self.g_models = self.load_g_models(reduced_number=reduced_number, verbose=verbose) if load_g else None
+            self.h_models = self.load_h_models(reduced_number=reduced_number, verbose=verbose) if load_h else None
+            self.saq_models = self.load_saq_models(reduced_number=reduced_number, verbose=verbose) if load_saq else None
 
-    def load_g_models(self, reduced_number=False, logger=None):
+    def load_g_models(self, reduced_number=False, verbose=True):
         """
         Loads the solvation free energy models.
             :param reduced_number: if true, only 3 models are considered to make predictions faster
@@ -36,7 +40,8 @@ class SolubilityModels:
         path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         paths = [os.path.join(path, 'trained_models', 'Gsolv', 'model_Gsolv_' + str(i) + '.pt')
                        for i in range(number)]
-        logger.info(f'Loading {number} solvation free energy models from {path}')
+        if verbose:
+            self.logger(f'Loading {number} solvation free energy models from {path}')
         input = inp_Gsolv.InputArguments()
         input.add_hydrogens_to_solvent = False
         input.num_mols = 2
@@ -53,7 +58,7 @@ class SolubilityModels:
             models.append(model)
         return input, scalers, models
 
-    def load_h_models(self, reduced_number=False, logger=None):
+    def load_h_models(self, reduced_number=False, verbose=True):
         """
         Loads the solvation enthalpy models.
             :param reduced_number: if true, only 3 models are considered to make predictions faster
@@ -64,7 +69,8 @@ class SolubilityModels:
 
         paths = [os.path.join(path, 'trained_models', 'Hsolv', 'model_Hsolv_' + str(i) + '.pt')
                        for i in range(number)]
-        logger.info(f'Loading {number} solvation enthalpy models from {path}')
+        if verbose:
+            self.logger(f'Loading {number} solvation enthalpy models from {path}')
         input = inp_Hsolv.InputArguments()
         scalers = []
         models = []
@@ -76,7 +82,7 @@ class SolubilityModels:
             models.append(model)
         return input, scalers, models
 
-    def load_saq_models(self, reduced_number=False, logger=None):
+    def load_saq_models(self, reduced_number=False, verbose=True):
         """
         Loads the aqueous solubility models.
             :param reduced_number: if true, only 3 models are considered to make predictions faster
@@ -87,7 +93,8 @@ class SolubilityModels:
 
         paths = [os.path.join(path, 'trained_models', 'Saq', 'model_Saq_' + str(i) + '.pt')
                        for i in range(number)]
-        logger.info(f'Loading {number} aqueous solubility models from {path}')
+        if verbose:
+            self.logger(f'Loading {number} aqueous solubility models from {path}')
         input = inp_logSaq.InputArguments()
         scalers = []
         models = []

@@ -27,9 +27,11 @@ class SolubilityCalculations:
                  calculate_reference_solvents: bool = None,
                  calculate_t_dep: bool = None,
                  calculate_t_dep_with_t_dep_hsolu: bool = None,
-                 logger=None):
+                 logger=None,
+                 verbose=True):
 
-        logger.info('Start making logS calculations')
+        self.logger = logger.info if logger is not None else print
+
         self.gsolv_298, self.unc_gsolv_298 = None, None
         self.logk_298, self.unc_logk_298 = None, None
         self.gsolv_aq_298, self.unc_gsolv_aq_298 = None, None
@@ -53,28 +55,30 @@ class SolubilityCalculations:
         self.logs_T_from_ref, self.logs_T_with_t_dep_hsolu_from_ref = None, None
 
         if predictions is not None:
+            self.logger('Start making logS calculations')
             self.make_calculations_298(predictions=predictions,
                                        calculate_aqueous=calculate_aqueous,
                                        calculate_reference_solvents=calculate_reference_solvents,
-                                       logger=logger)
+                                       verbose=verbose)
             if calculate_t_dep:
                 self.make_calculations_t(predictions=predictions,
                                          calculate_aqueous=calculate_aqueous,
                                          calculate_reference_solvents=calculate_reference_solvents,
                                          calculate_t_dep_with_t_dep_hsolu=calculate_t_dep_with_t_dep_hsolu,
-                                         logger=logger)
+                                         verbose=verbose)
 
     def make_calculations_298(self, predictions: SolubilityPredictions,
                               calculate_aqueous: bool = None,
                               calculate_reference_solvents: bool = None,
-                              logger=None):
+                              verbose=False):
 
         self.gsolv_298, self.unc_gsolv_298 = self.extract_predictions(predictions.gsolv)
         self.logk_298 = self.calculate_logk(gsolv=self.gsolv_298)
         self.unc_logk_298 = self.calculate_logk(gsolv=self.unc_gsolv_298, uncertainty=True)
 
         if calculate_aqueous:
-            logger.info('Calculating logS at 298K from predicted aqueous solubility')
+            if verbose:
+                self.logger('Calculating logS at 298K from predicted aqueous solubility')
             self.gsolv_aq_298,  self.unc_gsolv_aq_298 = self.extract_predictions(predictions.gsolv_aq)
             self.logk_aq_298 = self.calculate_logk(gsolv=self.gsolv_aq_298)
             self.unc_logk_aq_298 = self.calculate_logk(gsolv=self.unc_gsolv_aq_298, uncertainty=True)
@@ -89,7 +93,8 @@ class SolubilityCalculations:
                                                                 uncertainty=True)
 
         if calculate_reference_solvents:
-            logger.info('Calculating logS at 298K from reference solubility')
+            if verbose:
+                self.logger('Calculating logS at 298K from reference solubility')
             self.gsolv_ref_298, self.unc_gsolv_ref_298 = self.extract_predictions(predictions.gsolv_ref)
 
             self.logk_ref_298 = self.calculate_logk(gsolv=self.gsolv_ref_298)
@@ -108,7 +113,7 @@ class SolubilityCalculations:
                             calculate_aqueous: bool = None,
                             calculate_reference_solvents: bool = None,
                             calculate_t_dep_with_t_dep_hsolu: bool = None,
-                            logger=None):
+                            verbose=False):
 
         self.hsolv_298, self.unc_hsolv_298 = self.extract_predictions(predictions.hsolv)
 
@@ -138,13 +143,15 @@ class SolubilityCalculations:
                 self.get_solvent_info(predictions.data.smiles_pairs, solv_info_dict)
 
         if calculate_aqueous:
-            logger.info('Calculating T-dep logS from predicted aqueous solubility using H_solu(298K) approximation')
+            if verbose:
+                self.logger('Calculating T-dep logS from predicted aqueous solubility using H_solu(298K) approximation')
             self.logs_T_from_aq = self.calculate_logs_t(hsolv_298=self.hsolv_298,
                                                         hsubl_298=self.hsubl_298,
                                                         logs_298=self.logs_298_from_aq,
                                                         temperatures=predictions.data.temperatures)
             if calculate_t_dep_with_t_dep_hsolu:
-                logger.info('Calculating T-dep logS from predicted aqueous solubility using T-dep H_solu')
+                if verbose:
+                    self.logger('Calculating T-dep logS from predicted aqueous solubility using T-dep H_solu')
                 self.logs_T_with_t_dep_hsolu_from_aq, self.logs_T_with_t_dep_hsolu_error_message, self.hsolv_T = \
                     self.calculate_logs_t_with_t_dep_hsolu_all(
                     gsolv_298_list=self.gsolv_298, hsolv_298_list=self.hsolv_298, hsubl_298_list=self.hsubl_298,
@@ -153,13 +160,15 @@ class SolubilityCalculations:
                     Tc_list=crit_t_list, rho_c_list=crit_d_list)
 
         if calculate_reference_solvents:
-            logger.info('Calculating T-dep logS from reference solubility using H_solu(298K) approximation')
+            if verbose:
+                self.logger('Calculating T-dep logS from reference solubility using H_solu(298K) approximation')
             self.logs_T_from_ref = self.calculate_logs_t(hsolv_298=self.hsolv_298,
                                                          hsubl_298=self.hsubl_298,
                                                          logs_298=self.logs_298_from_ref,
                                                          temperatures=predictions.data.temperatures)
             if calculate_t_dep_with_t_dep_hsolu:
-                logger.info( 'Calculating T-dep logS from reference solubility using T-dep H_solu')
+                if verbose:
+                    self.logger('Calculating T-dep logS from reference solubility using T-dep H_solu')
                 # since `logs_T_with_t_dep_hsolu_error_message` and `hsolv_T` will be the same whether aqueous
                 # or reference solubility is used, these can be overwritten.
                 self.logs_T_with_t_dep_hsolu_from_ref, self.logs_T_with_t_dep_hsolu_error_message, self.hsolv_T = \

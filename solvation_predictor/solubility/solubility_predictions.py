@@ -14,7 +14,8 @@ class SolubilityPredictions:
                  predict_reference_solvents: bool = False,
                  predict_t_dep: bool = False,
                  predict_solute_parameters: bool = False,
-                 logger=None):
+                 logger=None,
+                 verbose=True):
         """
         Make the machine learning model predictions
             :param data: data of the type SolubilityData
@@ -23,9 +24,12 @@ class SolubilityPredictions:
             :param predict_reference_solvents: if you want to calculate solubility using reference solvents
             :param predict_t_dep: if you want to calculate temperature dependent solubility
             :param predict_solute_parameters: if you want to predict solute parameters
+            :param logger: logger file
+            :param verbose: whether to show logger info or not
         """
         self.data = data if data is not None else None
         self.models = models if models is not None else None
+        self.logger = logger.info if logger is not None else print
 
         self.gsolv = None
         self.hsolv = None
@@ -39,7 +43,7 @@ class SolubilityPredictions:
                                             predict_reference_solvents=predict_reference_solvents,
                                             predict_t_dep=predict_t_dep,
                                             predict_solute_parameters=predict_solute_parameters,
-                                            logger=logger)
+                                            verbose=verbose)
 
     def set_data(self, data: SolubilityData):
         self.data = data
@@ -48,22 +52,23 @@ class SolubilityPredictions:
         self.models = models
 
     def make_all_model_predictions(self, predict_aqueous: bool = False, predict_reference_solvents: bool = False,
-                                   predict_t_dep: bool = False, predict_solute_parameters: bool = False, logger=None):
+                                   predict_t_dep: bool = False, predict_solute_parameters: bool = False, verbose=False):
 
-        self.gsolv = self.make_gsolv_predictions(logger=logger) if self.models.g_models is not None else None
-        self.hsolv = self.make_hsolv_predictions(logger=logger) if self.models.h_models is not None else None
-        self.saq = self.make_saq_predictions(logger=logger) if self.models.saq_models is not None else None
+        self.gsolv = self.make_gsolv_predictions(verbose=verbose) if self.models.g_models is not None else None
+        self.hsolv = self.make_hsolv_predictions(verbose=verbose) if self.models.h_models is not None else None
+        self.saq = self.make_saq_predictions(verbose=verbose) if self.models.saq_models is not None else None
 
-        self.gsolv_aq = self.make_gsolvaq_predictions(logger=logger) \
+        self.gsolv_aq = self.make_gsolvaq_predictions(verbose=verbose) \
             if predict_aqueous and self.models.g_models is not None else None
-        self.gsolv_ref = self.make_gsolvref_predictions(logger=logger) \
+        self.gsolv_ref = self.make_gsolvref_predictions(verbose=verbose) \
             if predict_reference_solvents and self.models.g_models is not None else None
 
-        self.solute_parameters = self.make_soluteparameter_predictions(logger=logger) \
+        self.solute_parameters = self.make_soluteparameter_predictions(verbose=verbose) \
             if predict_t_dep or predict_solute_parameters else None
 
-    def make_gsolv_predictions(self, logger=None):
-        logger.info('Make Gsolv predictions')
+    def make_gsolv_predictions(self, verbose=False):
+        if verbose:
+            self.logger('Make Gsolv predictions')
         if self.models.g_models is None:
             raise ValueError('Gsolv models are not loaded, cannot make predictions')
         unique_smiles_pairs = set(self.data.smiles_pairs)
@@ -72,8 +77,9 @@ class SolubilityPredictions:
         variance_predictions = [results[sm][1] for sm in self.data.smiles_pairs]
         return mean_predictions, variance_predictions
 
-    def make_hsolv_predictions(self, logger=None):
-        logger.info('Make Hsolv predictions')
+    def make_hsolv_predictions(self, verbose=False):
+        if verbose:
+            self.logger('Make Hsolv predictions')
         if self.models.h_models is None:
             raise ValueError('Hsolv models are not loaded, cannot make predictions')
         unique_smiles_pairs = set(self.data.smiles_pairs)
@@ -82,8 +88,9 @@ class SolubilityPredictions:
         variance_predictions = [results[sm][1] for sm in self.data.smiles_pairs]
         return mean_predictions, variance_predictions
 
-    def make_gsolvaq_predictions(self, logger=None):
-        logger.info('Make Gsolv aqueous predictions')
+    def make_gsolvaq_predictions(self, verbose=False):
+        if verbose:
+            self.logger('Make Gsolv aqueous predictions')
         if self.models.g_models is None:
             raise ValueError('Gsolv models are not loaded, cannot make predictions')
         aq_smiles_pairs = [('O', sm[1]) for sm in self.data.smiles_pairs]
@@ -92,8 +99,9 @@ class SolubilityPredictions:
         variance_predictions = [results[sm][1] for sm in aq_smiles_pairs]
         return mean_predictions, variance_predictions
 
-    def make_gsolvref_predictions(self, logger=None):
-        logger.info('Make Gsolv reference predictions')
+    def make_gsolvref_predictions(self, verbose=False):
+        if verbose:
+            self.logger('Make Gsolv reference predictions')
         if self.models.g_models is None:
             raise ValueError('Gsolv models are not loaded, cannot make predictions')
         if self.data.reference_solvents is None:
@@ -104,8 +112,9 @@ class SolubilityPredictions:
         variance_predictions = [results[sm][1] for sm in new_smiles_pairs]
         return mean_predictions, variance_predictions
 
-    def make_saq_predictions(self, logger=None):
-        logger.info('Make logSaq predictions')
+    def make_saq_predictions(self, verbose=False):
+        if verbose:
+            self.logger('Make logSaq predictions')
         if self.models.saq_models is None:
             raise ValueError('logSaq models are not loaded, cannot make predictions')
         solute_smiles = [(sm[1]) for sm in self.data.smiles_pairs]
@@ -138,8 +147,9 @@ class SolubilityPredictions:
             preds.append(pred)
         return np.mean(preds), np.var(preds)
 
-    def make_soluteparameter_predictions(self, logger=None):
-        logger.info('Make solute parameter predictions')
+    def make_soluteparameter_predictions(self, verbose=False):
+        if verbose:
+            self.logger('Make solute parameter predictions')
         solute_smiles = [(sm[1]) for sm in self.data.smiles_pairs]
         unique_solute_smiles = [[sm] for sm in set(solute_smiles)]
         results = dict()
