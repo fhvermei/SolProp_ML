@@ -152,8 +152,8 @@ class SolubilityCalculations:
             if calculate_t_dep_with_t_dep_hsolu:
                 if verbose:
                     self.logger('Calculating T-dep logS from predicted aqueous solubility using T-dep H_solu')
-                self.logs_T_with_t_dep_hsolu_from_aq, self.logs_T_with_t_dep_hsolu_error_message, self.hsolv_T = \
-                    self.calculate_logs_t_with_t_dep_hsolu_all(
+                self.logs_T_with_t_dep_hsolu_from_aq, self.logs_T_with_t_dep_hsolu_error_message, self.hsolv_T,\
+                    self.gsolv_T, self.ssolv_T = self.calculate_logs_t_with_t_dep_hsolu_all(
                     gsolv_298_list=self.gsolv_298, hsolv_298_list=self.hsolv_298, hsubl_298_list=self.hsubl_298,
                     Cp_solid_list=self.Cp_solid, Cp_gas_list=self.Cp_gas, logs_298_list=self.logs_298_from_aq,
                     T_list=predictions.data.temperatures, coolprop_name_list=coolprop_name_list,
@@ -171,8 +171,8 @@ class SolubilityCalculations:
                     self.logger('Calculating T-dep logS from reference solubility using T-dep H_solu')
                 # since `logs_T_with_t_dep_hsolu_error_message` and `hsolv_T` will be the same whether aqueous
                 # or reference solubility is used, these can be overwritten.
-                self.logs_T_with_t_dep_hsolu_from_ref, self.logs_T_with_t_dep_hsolu_error_message, self.hsolv_T = \
-                    self.calculate_logs_t_with_t_dep_hsolu_all(
+                self.logs_T_with_t_dep_hsolu_from_ref, self.logs_T_with_t_dep_hsolu_error_message, self.hsolv_T,\
+                    self.gsolv_T, self.ssolv_T= self.calculate_logs_t_with_t_dep_hsolu_all(
                     gsolv_298_list=self.gsolv_298, hsolv_298_list=self.hsolv_298, hsubl_298_list=self.hsubl_298,
                     Cp_solid_list=self.Cp_solid, Cp_gas_list=self.Cp_gas, logs_298_list=self.logs_298_from_ref,
                     T_list=predictions.data.temperatures, coolprop_name_list=coolprop_name_list,
@@ -485,10 +485,10 @@ class SolubilityCalculations:
             gsolv_T = gsolv_list[1]
             ssolv_T = - (gsolv_list[2] - gsolv_list[0]) / (T_list[2] - T_list[0])
         hsolv_T = gsolv_T + T * ssolv_T
-        return hsolv_T  # in kcal/mol
+        return hsolv_T, gsolv_T, ssolv_T  # in kcal/mol, kcal/mol, kcal/K/mol
 
     def hsolv_integrand(self, T, Tc, rho_c, coolprop_name, kfactor_parameters, T_min, T_max):
-        hsolv_T = self.get_t_dep_hsolv(T, Tc, rho_c, coolprop_name, kfactor_parameters, T_min, T_max)  # in kcal/mol
+        hsolv_T, _, _ = self.get_t_dep_hsolv(T, Tc, rho_c, coolprop_name, kfactor_parameters, T_min, T_max)  # in kcal/mol
         integrand = hsolv_T * 4.184 * 1000. / (8.314 * T ** 2)
         return integrand
 
@@ -503,7 +503,7 @@ class SolubilityCalculations:
         hsolv_integral = I[0]
         # Use a constant hsolvT at const_hsolu_T for T < const_hsolu_T if const_hsolu_T is not None
         if const_hsolu_T is not None:
-            hsolv_T = self.get_t_dep_hsolv(const_hsolu_T, Tc, rho_c, coolprop_name, kfactor_parameters, T_min, T_max)
+            hsolv_T, _, _ = self.get_t_dep_hsolv(const_hsolu_T, Tc, rho_c, coolprop_name, kfactor_parameters, T_min, T_max)
             hsolv_integral += (- hsolv_T * 4.184 * 1000.) / 8.314 * (1 / T - 1 / const_hsolu_T)
         return hsolv_integral
 
@@ -527,7 +527,7 @@ class SolubilityCalculations:
         valid, const_hsolu_T, error_message, T_min, T_max = self.check_valid_t(T, Tc, coolprop_name=coolprop_name)
 
         if valid is False:
-            return None, error_message, None
+            return None, error_message, None, None, None
 
         kfactor_parameters = self.get_Kfactor_parameters(gsolv_298, hsolv_298, Tc, rho_c, coolprop_name)
         hsolv_integral = self.integrate_hsolv_term(T, const_hsolu_T, Tc, rho_c, coolprop_name, kfactor_parameters,
@@ -536,32 +536,37 @@ class SolubilityCalculations:
         logs_t = logs_298 + total_integral / 2.303
         # get hsolv_T
         if const_hsolu_T is None:
-            hsolv_T = self.get_t_dep_hsolv(T, Tc, rho_c, coolprop_name, kfactor_parameters, T_min, T_max)
+            hsolv_T, gsolv_T, ssolv_T = self.get_t_dep_hsolv(T, Tc, rho_c, coolprop_name, kfactor_parameters,
+                                                             T_min, T_max)
         else:
-            hsolv_T = self.get_t_dep_hsolv(const_hsolu_T, Tc, rho_c, coolprop_name, kfactor_parameters, T_min, T_max)
-        return logs_t, error_message, hsolv_T
+            hsolv_T, gsolv_T, ssolv_T = self.get_t_dep_hsolv(const_hsolu_T, Tc, rho_c, coolprop_name,
+                                                             kfactor_parameters, T_min, T_max)
+        return logs_t, error_message, hsolv_T, gsolv_T, ssolv_T
 
     def calculate_logs_t_with_t_dep_hsolu_all(self, gsolv_298_list=None, hsolv_298_list=None, hsubl_298_list=None,
                                               Cp_solid_list=None, Cp_gas_list=None, logs_298_list=None, T_list=None,
                                               coolprop_name_list=None, Tc_list=None, rho_c_list=None):
-        logs_t_list = []
-        error_message_list = []
-        hsolv_t_list = []
+
+        logs_t_list, error_message_list, hsolv_t_list, gsolv_t_list, ssolv_t_list = [], [], [], [], []
         for i in range(len(gsolv_298_list)):
             if Tc_list[i] is None or rho_c_list is None:
                 logs_t_list.append(None)
                 error_message_list.append('The given solvent is not supported. Its critical temperature and'
                                           ' density are required for calculation.')
                 hsolv_t_list.append(None)
+                gsolv_t_list.append(None)
+                ssolv_t_list.append(None)
             else:
-                logs_t, error_message, hsolv_t = self.calculate_logs_t_with_t_dep_hsolu(
+                logs_t, error_message, hsolv_t, gsolv_T, ssolv_T = self.calculate_logs_t_with_t_dep_hsolu(
                     gsolv_298=gsolv_298_list[i], hsolv_298=hsolv_298_list[i], hsubl_298=hsubl_298_list[i],
                     Cp_solid=Cp_solid_list[i], Cp_gas=Cp_gas_list[i], logs_298=logs_298_list[i],
                     T=T_list[i], coolprop_name=coolprop_name_list[i], Tc=Tc_list[i], rho_c=rho_c_list[i])
                 logs_t_list.append(logs_t)
                 error_message_list.append(error_message)
                 hsolv_t_list.append(hsolv_t)
-        return logs_t_list, error_message_list, hsolv_t_list
+                gsolv_t_list.append(gsolv_T)
+                ssolv_t_list.append(ssolv_T)
+        return logs_t_list, error_message_list, hsolv_t_list, gsolv_t_list, ssolv_t_list
 
 
 class KfactorParameters:

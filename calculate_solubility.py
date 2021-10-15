@@ -264,7 +264,10 @@ def write_results(df,
                 if calculations.Cp_gas is not None:
                     df['Cp_gas [J/K/mol]'] = calculations.Cp_gas
                     df['Cp_solid [J/K/mol]'] = calculations.Cp_solid
+                if calculations.hsolv_T is not None:
+                    df['G_solv_T [kcal/mol]'] = calculations.gsolv_T
                     df['H_solv_T [kcal/mol]'] = calculations.hsolv_T
+                    df['S_solv_T [kcal/K/mol]'] = calculations.ssolv_T
 
     if df_wrongsmiles is not None:
         df = pd.concat([df, df_wrongsmiles], ignore_index=True)
