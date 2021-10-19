@@ -142,7 +142,7 @@ def calculate_solubility(path: str = None,
     predict_reference_solvents = data.reference_solvents is not None and not len([i for i in data.reference_solvents if i]) == 0
     predict_aqueous = calculate_aqueous or not predict_reference_solvents
     predict_t_dep = data.temperatures is not None and (np.min(data.temperatures) < 297. or np.max(data.temperatures) > 299.)
-    calculate_t_dep_with_t_dep_hsolu = predict_t_dep
+    calculate_t_dep_with_t_dep_hdiss = predict_t_dep
 
     models = SolubilityModels(reduced_number=reduced_number,
                               load_g=True,
@@ -161,7 +161,7 @@ def calculate_solubility(path: str = None,
                                           calculate_aqueous=predict_aqueous,
                                           calculate_reference_solvents=predict_reference_solvents,
                                           calculate_t_dep=predict_t_dep,
-                                          calculate_t_dep_with_t_dep_hsolu=calculate_t_dep_with_t_dep_hsolu,
+                                          calculate_t_dep_with_t_dep_hdiss=calculate_t_dep_with_t_dep_hdiss,
                                           solv_crit_prop_dict=solv_crit_prop_dict,
                                           logger=logger)
     if export_csv is not None:
@@ -241,16 +241,16 @@ def write_results(df,
             if calculations.logs_298_from_ref is not None:
                 df['logS_298_from_ref [log10(mol/L)]'] = calculations.logs_298_from_ref
                 df['uncertainty_logS_298_from_ref [log10(mol/L)]'] = calculations.unc_logs_298_from_ref
-            if calculations.logs_T_from_aq is not None:
-                df['logS_T_from_aq [log10(mol/L)]'] = calculations.logs_T_from_aq
-            if calculations.logs_T_from_ref is not None:
-                df['logS_T_from_ref [log10(mol/L)]'] = calculations.logs_T_from_ref
-            if calculations.logs_T_with_t_dep_hsolu_from_aq is not None:
-                df['logS_T_from_aq_with_T_dep_Hsolu [log10(mol/L)]'] = calculations.logs_T_with_t_dep_hsolu_from_aq
-                df['error_message_for_T_dep_Hsolu_prediction'] = calculations.logs_T_with_t_dep_hsolu_error_message
-            if calculations.logs_T_with_t_dep_hsolu_from_ref is not None:
-                df['logS_T_from_ref_with_T_dep_Hsolu [log10(mol/L)]'] = calculations.logs_T_with_t_dep_hsolu_from_ref
-                df['error_message_for_T_dep_Hsolu_prediction'] = calculations.logs_T_with_t_dep_hsolu_error_message
+            if calculations.logs_T_with_const_hdiss_from_aq is not None:
+                df['logs_T_from_aq_with_constant_Hdiss [log10(mol/L)]'] = calculations.logs_T_with_const_hdiss_from_aq
+            if calculations.logs_T_with_const_hdiss_from_ref is not None:
+                df['logs_T_from_ref_with_constant_Hdiss [log10(mol/L)]'] = calculations.logs_T_with_const_hdiss_from_ref
+            if calculations.logs_T_with_T_dep_hdiss_from_aq is not None:
+                df['logs_T_from_aq_with_T_dep_Hdiss [log10(mol/L)]'] = calculations.logs_T_with_T_dep_hdiss_from_aq
+            if calculations.logs_T_with_T_dep_hdiss_from_ref is not None:
+                df['logs_T_from_ref_with_T_dep_Hdiss [log10(mol/L)]'] = calculations.logs_T_with_T_dep_hdiss_from_ref
+            if calculations.logs_T_with_T_dep_hdiss_error_message is not None:
+                df['error_message_for_T_dep_Hdiss_prediction'] = calculations.logs_T_with_T_dep_hdiss_error_message
 
             if detail:
                 if calculations.logk_298 is not None:
