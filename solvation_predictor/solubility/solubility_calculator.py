@@ -27,10 +27,12 @@ class SolubilityCalculations:
                  calculate_reference_solvents: bool = None,
                  calculate_t_dep: bool = None,
                  calculate_t_dep_with_t_dep_hsolu: bool = None,
+                 solv_crit_prop_dict: dict = None,
                  logger=None,
                  verbose=True):
 
         self.logger = logger.info if logger is not None else print
+        self.solv_crit_prop_dict = solv_crit_prop_dict
 
         self.gsolv_298, self.unc_gsolv_298 = None, None
         self.logk_298, self.unc_logk_298 = None, None
@@ -134,13 +136,15 @@ class SolubilityCalculations:
             self.Cp_gas = self.get_Cp_gas(self.E, self.S, self.A, self.B, self.V)
 
             # load solvent's CoolProp name, critical temperature, and critical density data
-            current_path = os.path.dirname(os.path.abspath(__file__))
-            crit_data_path = os.path.join(current_path, 'solvent_crit_data.json')
-            with open(crit_data_path) as f:
-                solv_info_dict = json.load(f)  # inchi is used as a solvent key
+            # if the solvent critical property dictionary (solv_crit_prop_dict) is not provided, use the default one.
+            if self.solv_crit_prop_dict is None:
+                current_path = os.path.dirname(os.path.abspath(__file__))
+                crit_data_path = os.path.join(current_path, 'solvent_crit_data.json')
+                with open(crit_data_path) as f:
+                    self.solv_crit_prop_dict = json.load(f)  # inchi with fixed H is used as a solvent key
 
             coolprop_name_list, crit_t_list, crit_d_list = \
-                self.get_solvent_info(predictions.data.smiles_pairs, solv_info_dict)
+                self.get_solvent_info(predictions.data.smiles_pairs, self.solv_crit_prop_dict)
 
         if calculate_aqueous:
             if verbose:
@@ -321,16 +325,16 @@ class SolubilityCalculations:
 
         return OH_adj_found, OH_non_found, amine_found
 
-    def get_solvent_info(self, smiles_pairs, solv_info_dict):
+    def get_solvent_info(self, smiles_pairs, solv_crit_prop_dict):
         solvents_smiles_list = [sm[0] for sm in smiles_pairs]
         coolprop_name_list, crit_t_list, crit_d_list = [], [], []
         for smi in solvents_smiles_list:
             mol = Chem.MolFromSmiles(smi)
             inchi = Chem.MolToInchi(mol, options='/FixedH')
-            if inchi in solv_info_dict:
-                coolprop_name_list.append(solv_info_dict[inchi]['coolprop_name'])
-                crit_t_list.append(solv_info_dict[inchi]['Tc'])  # in K
-                crit_d_list.append(solv_info_dict[inchi]['rho_c'])  # in mol/m^3
+            if inchi in solv_crit_prop_dict:
+                coolprop_name_list.append(solv_crit_prop_dict[inchi]['coolprop_name'])
+                crit_t_list.append(solv_crit_prop_dict[inchi]['Tc'])  # in K
+                crit_d_list.append(solv_crit_prop_dict[inchi]['rho_c'])  # in mol/m^3
             else:
                 coolprop_name_list.append(None)
                 crit_t_list.append(None)

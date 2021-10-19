@@ -104,6 +104,7 @@ def calculate_solubility(path: str = None,
                         reduced_number: bool = False,
                         export_csv: str = None,
                         export_detailed_csv: bool = False,
+                        solv_crit_prop_dict: dict = None,
                         logger = None) -> SolubilityCalculations:
     """
     Predict relevant properties and make calculations.
@@ -117,6 +118,14 @@ def calculate_solubility(path: str = None,
         :param reduced_number: use a reduced number of models for faster but less accurate prediction (does not work for solute_parameters)
         :param export_csv: path if csv file with final logS calculations needs to be exported
         :param export_detailed_csv: path if csv file with all predictions and calculations needs to be exported
+        :param solv_crit_prop_dict: (optional input) dictionary containing the CoolProp name, critical temperature (in K),
+        and critical density (in mol/m3) of solvents. If this is not provided, default dictionary is used. The inchi with
+        fixed H option is used as a dictionary key.
+            example format of solv_crit_prop_dict:
+            {'InChI=1/CH4O/c1-2/h2H,1H3': {'name': 'methanol', 'smiles': 'CO', 'coolprop_name': 'Methanol',
+                                            'Tc': 513.0, 'rho_c': 8510.0},
+            'InChI=1/C3H8O/c1-3(2)4/h3-4H,1-2H3': {'name': 'propan-2-ol',  'smiles': 'CC(C)O', 'coolprop_name': None,
+                                            'Tc': 509.0, 'rho_c': 4500.0}}
 
         :returns: calculations in the form of SolubilityCalculations
     """
@@ -153,6 +162,7 @@ def calculate_solubility(path: str = None,
                                           calculate_reference_solvents=predict_reference_solvents,
                                           calculate_t_dep=predict_t_dep,
                                           calculate_t_dep_with_t_dep_hsolu=calculate_t_dep_with_t_dep_hsolu,
+                                          solv_crit_prop_dict=solv_crit_prop_dict,
                                           logger=logger)
     if export_csv is not None:
         df = write_results(df,
@@ -301,4 +311,5 @@ results = calculate_solubility(path=None,
                                reduced_number=False,
                                export_csv='./../results_calculations.csv',
                                export_detailed_csv=True,
+                               solv_crit_prop_dict=None,
                                logger='/home/fhvermei/Software/PycharmProjects/ml_solvation_v01/databases/test.log')
