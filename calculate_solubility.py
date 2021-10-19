@@ -242,15 +242,17 @@ def write_results(df,
                 df['logS_298_from_ref [log10(mol/L)]'] = calculations.logs_298_from_ref
                 df['uncertainty_logS_298_from_ref [log10(mol/L)]'] = calculations.unc_logs_298_from_ref
             if calculations.logs_T_with_const_hdiss_from_aq is not None:
-                df['logs_T_from_aq_with_constant_Hdiss [log10(mol/L)]'] = calculations.logs_T_with_const_hdiss_from_aq
+                df['logS_T_from_aq_with_constant_Hdiss [log10(mol/L)]'] = calculations.logs_T_with_const_hdiss_from_aq
             if calculations.logs_T_with_const_hdiss_from_ref is not None:
-                df['logs_T_from_ref_with_constant_Hdiss [log10(mol/L)]'] = calculations.logs_T_with_const_hdiss_from_ref
+                df['logS_T_from_ref_with_constant_Hdiss [log10(mol/L)]'] = calculations.logs_T_with_const_hdiss_from_ref
+            if calculations.logs_T_with_const_hdiss_warning_message is not None:
+                df['warning_message_for_logS_T_with_constant_Hdiss'] = calculations.logs_T_with_const_hdiss_warning_message
             if calculations.logs_T_with_T_dep_hdiss_from_aq is not None:
-                df['logs_T_from_aq_with_T_dep_Hdiss [log10(mol/L)]'] = calculations.logs_T_with_T_dep_hdiss_from_aq
+                df['logS_T_from_aq_with_T_dep_Hdiss [log10(mol/L)]'] = calculations.logs_T_with_T_dep_hdiss_from_aq
             if calculations.logs_T_with_T_dep_hdiss_from_ref is not None:
-                df['logs_T_from_ref_with_T_dep_Hdiss [log10(mol/L)]'] = calculations.logs_T_with_T_dep_hdiss_from_ref
+                df['logS_T_from_ref_with_T_dep_Hdiss [log10(mol/L)]'] = calculations.logs_T_with_T_dep_hdiss_from_ref
             if calculations.logs_T_with_T_dep_hdiss_error_message is not None:
-                df['error_message_for_T_dep_Hdiss_prediction'] = calculations.logs_T_with_T_dep_hdiss_error_message
+                df['error_message_for_logS_T_with_T_dep_Hdiss'] = calculations.logs_T_with_T_dep_hdiss_error_message
 
             if detail:
                 if calculations.logk_298 is not None:

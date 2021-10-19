@@ -53,7 +53,8 @@ class SolubilityCalculations:
         self.hsubl_298 = None
         self.Cp_solid, self.Cp_gas = None, None
         self.logs_T_with_const_hdiss_from_aq, self.logs_T_with_T_dep_hdiss_from_aq = None, None
-        self.logs_T_with_T_dep_hdiss_error_message, self.hsolv_T = None, None
+        self.logs_T_with_const_hdiss_warning_message, self.logs_T_with_T_dep_hdiss_error_message = None, None
+        self.hsolv_T, self.gsolv_T, self.ssolv_T = None, None, None
         self.logs_T_with_const_hdiss_from_ref, self.logs_T_with_T_dep_hdiss_from_ref = None, None
 
         if predictions is not None:
@@ -129,6 +130,8 @@ class SolubilityCalculations:
                                             I_OHadj=self.I_OHadj,
                                             I_OHnonadj=self.I_OHnonadj,
                                             I_NH=self.I_NH)
+        self.logs_T_with_const_hdiss_warning_message = self.get_logs_t_with_const_hdiss_warning_message(
+            temperatures=predictions.data.temperatures)
 
         if calculate_t_dep_with_t_dep_hdiss:
             self.Cp_solid = self.get_Cp_solid(self.E, self.S, self.A, self.B, self.V,
@@ -190,6 +193,11 @@ class SolubilityCalculations:
     def calculate_logs_t(self, hsolv_298=None, hsubl_298=None, logs_298=None, temperatures=None):
         hdiss_298 = hsolv_298 + hsubl_298
         return logs_298 - hdiss_298/2.303/8.314*4.184*1000*(1/temperatures-1/298.)
+
+    def get_logs_t_with_const_hdiss_warning_message(self, temperatures=None):
+        warning_message = ['Warning! Above 350 K, `calculate_t_dep_with_t_dep_hdiss` option is recommended.'
+                           if temp > 350 else '' for temp in temperatures]
+        return warning_message
 
     def calculate_logs_298(self, logk=None, logk_ref=None, logs_ref=None, uncertainty: bool = False):
         if uncertainty:
