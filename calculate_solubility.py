@@ -59,7 +59,7 @@ def predict_property(csv_path: str = None,
                      saq: bool = False,
                      solute_parameters: bool = False,
                      reduced_number: bool = False,
-                     validate_smiles: bool = False,
+                     validate_data_list: list = [],
                      export_csv: str = False,
                      logger=None) -> SolubilityPredictions:
     """
@@ -71,7 +71,7 @@ def predict_property(csv_path: str = None,
         :param hsolv: predict solvation enthalpies
         :param saq: predict aqueous solubility
         :param solute_parameters: predict solute parameters
-        :param validate_smiles: validate the smiles inputs (also converts inchis)
+        :param validate_data_list: a list of data names to validate (also converts inchis to smiles)
         :param reduced_number: use a reduced number of models for faster but less accurate prediction (does not work for solute_parameters)
         :param export_csv: path if csv file with predictions needs to be exported
 
@@ -80,18 +80,18 @@ def predict_property(csv_path: str = None,
     logger = create_logger(save_dir=logger)
     if df is None:
         df = pd.read_csv(csv_path)
-    df_wrongsmiles = None
-    data = SolubilityData(df=df, validate_smiles=validate_smiles, logger=logger)
-    if validate_smiles:
+    df_wrong_input = None
+    data = SolubilityData(df=df, validate_data_list=validate_data_list, logger=logger)
+    if len(validate_data_list) > 0:
         df = data.df
-        df_wrongsmiles = data.df_wrongsmiles
+        df_wrong_input = data.df_wrong_input
     models = SolubilityModels(reduced_number=reduced_number, load_g=gsolv, load_h=hsolv, load_saq=saq, logger=logger)
     predictions = SolubilityPredictions(data, models, predict_solute_parameters=solute_parameters, logger=logger)
 
     if export_csv is not None:
         df = write_results(df,
                            export_csv,
-                           df_wrongsmiles=df_wrongsmiles,
+                           df_wrong_input=df_wrong_input,
                            predictions=predictions)
 
     return predictions
@@ -100,7 +100,7 @@ def predict_property(csv_path: str = None,
 def calculate_solubility(path: str = None,
                         df: pd.DataFrame = None,
                         calculate_aqueous: bool = False,
-                        validate_smiles: bool = False,
+                        validate_data_list: list = [],
                         reduced_number: bool = False,
                         export_csv: str = None,
                         export_detailed_csv: bool = False,
@@ -111,7 +111,9 @@ def calculate_solubility(path: str = None,
         :param path: specifies the path to the csv file
         :param df: direct import of pandas dataframe
         :param calculate_aqueous: also calculate aqueous solubility even if reference solubility is provided
-        :param validate_smiles: validate the smiles inputs (also converts inchis)
+        :param validate_data_list: a list data names to validate (also converts inchis to smiles)
+        inputs such as the reference solvent smiles inputs (also converts inchis), reference solubility inputs (must be
+        number), and temperature inputs (must be number).
         :param reduced_number: use a reduced number of models for faster but less accurate prediction (does not work for solute_parameters)
         :param export_csv: path if csv file with final logS calculations needs to be exported
         :param export_detailed_csv: path if csv file with all predictions and calculations needs to be exported
@@ -121,11 +123,12 @@ def calculate_solubility(path: str = None,
     logger = create_logger(save_dir=logger)
     if df is None:
         df = pd.read_csv(path)
-    df_wrongsmiles = None
-    data = SolubilityData(df=df, validate_smiles=validate_smiles, logger=logger)
-    if validate_smiles:
+
+    df_wrong_input = None
+    data = SolubilityData(df=df, validate_data_list=validate_data_list, logger=logger)
+    if len(validate_data_list) > 0:
         df = data.df
-        df_wrongsmiles = data.df_wrongsmiles
+        df_wrong_input = data.df_wrong_input
 
     predict_reference_solvents = data.reference_solvents is not None and not len([i for i in data.reference_solvents if i]) == 0
     predict_aqueous = calculate_aqueous or not predict_reference_solvents
@@ -154,7 +157,7 @@ def calculate_solubility(path: str = None,
     if export_csv is not None:
         df = write_results(df,
                            export_csv,
-                           df_wrongsmiles=df_wrongsmiles,
+                           df_wrong_input=df_wrong_input,
                            predictions=predictions,
                            calculations=calculations,
                            detail=export_detailed_csv)
@@ -163,7 +166,7 @@ def calculate_solubility(path: str = None,
 
 def write_results(df,
                   export_path=None,
-                  df_wrongsmiles=None,
+                  df_wrong_input=None,
                   predictions:SolubilityPredictions = None,
                   calculations:SolubilityCalculations = None,
                   detail=False):
@@ -171,7 +174,7 @@ def write_results(df,
     Function to write the predictions and calculations to a pandas dataframe and export to csv
         :param df: initial pandas dataframe with validated input data
         :param export_path: path to export the csv file if export is required
-        :param df_wrongsmiles: the pandas dataframe with wrong smiles and error messages, created after validation
+        :param df_wrong_input: the pandas dataframe with wrong inputs and error messages, created after validation
         :param predictions: the predictions to write, of the class SolubilityPredictions
         :param calculations: the calculations to write, of the class SolubilityCalculations
         :param detail: boolean is detailed calculations are required
@@ -269,8 +272,8 @@ def write_results(df,
                     df['H_solv_T [kcal/mol]'] = calculations.hsolv_T
                     df['S_solv_T [kcal/K/mol]'] = calculations.ssolv_T
 
-    if df_wrongsmiles is not None:
-        df = pd.concat([df, df_wrongsmiles], ignore_index=True)
+    if df_wrong_input is not None:
+        df = pd.concat([df, df_wrong_input], ignore_index=True)
     if export_path is not None:
         df.to_csv(export_path, index=False)
 
@@ -285,14 +288,15 @@ predictions = predict_property(csv_path=None,
                                saq=False,
                                solute_parameters=False,
                                reduced_number=False,
-                               validate_smiles=True,
+                               validate_data_list=['solute', 'solvent'],
                                export_csv='./../results_predictions.csv',
                                logger='/home/fhvermei/Software/PycharmProjects/ml_solvation_v01/databases/test.log')
 
 df = pd.read_csv('/home/fhvermei/Software/PycharmProjects/ml_solvation_v01/databases/test.csv')
 results = calculate_solubility(path=None,
                                df=df,
-                               validate_smiles=True,
+                               validate_data_list=['solute', 'solvent', 'reference_solvent',
+                                                   'reference_solubility', 'temperature'],
                                calculate_aqueous=True,
                                reduced_number=False,
                                export_csv='./../results_calculations.csv',
