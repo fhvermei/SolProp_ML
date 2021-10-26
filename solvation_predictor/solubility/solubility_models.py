@@ -91,7 +91,7 @@ class SolubilityModels:
         number = 30 if not reduced_number else 3
         path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-        paths = [os.path.join(path, 'trained_models', 'Saq', 'model_Saq_' + str(i) + '.pt')
+        paths = [os.path.join(path, 'trained_models', 'Saq', 'model_' + str(i) + '.pt')
                        for i in range(number)]
         if verbose:
             self.logger(f'Loading {number} aqueous solubility models from {path}')
