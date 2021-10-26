@@ -100,14 +100,14 @@ class SolubilityData:
             if validate_solvent:
                 solvent_smiles, error_msg = self.validate_smiles(row.solvent, error_msg, 'solvent')
                 new_value_dict['solvent'].append(solvent_smiles)
-            if 'reference_solvent' in self.df.columns:
+            if 'reference_solvent' in self.df.columns and validate_ref_solvent:
                 ref_solvent_smiles, error_msg = self.validate_smiles(row.reference_solvent, error_msg,
                                                                      'reference solvent')
                 ref_solubility, error_msg = self.check_is_number(row.reference_solubility, error_msg,
                                                                  'reference solubility')
                 new_value_dict['reference_solvent'].append(ref_solvent_smiles)
                 new_value_dict['reference_solubility'].append(ref_solubility)
-            if 'temperature' in self.df.columns:
+            if 'temperature' in self.df.columns and validate_temp:
                 temperature, error_msg = self.check_is_number(row.temperature, error_msg, 'temperature')
                 new_value_dict['temperature'].append(temperature)
             # append the results
