@@ -193,17 +193,17 @@ def write_results(df,
     """
     if predictions:
         if predictions.gsolv is not None:
-            df['G_solv_298 [kcal/mol]'] = [i for i in predictions.gsolv[0]]
-            df['uncertainty_G_solv_298 [kcal/mol]'] = [np.sqrt(i) for i in predictions.gsolv[1]]
+            df['dG_solv_298 [kcal/mol]'] = [i for i in predictions.gsolv[0]]
+            df['uncertainty_dG_solv_298 [kcal/mol]'] = [np.sqrt(i) for i in predictions.gsolv[1]]
         if predictions.gsolv_aq is not None:
-            df['G_solv_aq_298 [kcal/mol]'] = [i for i in predictions.gsolv_aq[0]]
-            df['uncertainty_G_solv_aq_298 [kcal/mol]'] = [np.sqrt(i) for i in predictions.gsolv_aq[1]]
+            df['dG_solv_aq_298 [kcal/mol]'] = [i for i in predictions.gsolv_aq[0]]
+            df['uncertainty_dG_solv_aq_298 [kcal/mol]'] = [np.sqrt(i) for i in predictions.gsolv_aq[1]]
         if predictions.gsolv_ref is not None:
-            df['G_solv_ref_298 [kcal/mol]'] = [i for i in predictions.gsolv_ref[0]]
-            df['uncertainty_G_solv_ref_298 [kcal/mol]'] = [np.sqrt(i) for i in predictions.gsolv_ref[1]]
+            df['dG_solv_ref_298 [kcal/mol]'] = [i for i in predictions.gsolv_ref[0]]
+            df['uncertainty_dG_solv_ref_298 [kcal/mol]'] = [np.sqrt(i) for i in predictions.gsolv_ref[1]]
         if predictions.hsolv is not None:
-            df['H_solv_298 [kcal/mol]'] = [i for i in predictions.hsolv[0]]
-            df['uncertainty_H_solv_298 [kcal/mol]'] = [np.sqrt(i) for i in predictions.hsolv[1]]
+            df['dH_solv_298 [kcal/mol]'] = [i for i in predictions.hsolv[0]]
+            df['uncertainty_dH_solv_298 [kcal/mol]'] = [np.sqrt(i) for i in predictions.hsolv[1]]
         if predictions.saq is not None:
             df['logS_aq_298 [log10(mol/L)]'] = [i for i in predictions.saq[0]]
             df['uncertainty_logS_aq_298 [log10(mol/L)]'] = [np.sqrt(i) for i in predictions.saq[1]]
@@ -275,14 +275,14 @@ def write_results(df,
                     df['adjacent diol parameter'] = calculations.I_OHadj
                     df['non-adjacent diol parameter'] = calculations.I_OHnonadj
                     df['amine parameter'] = calculations.I_NH
-                    df['H_sub_298 [kcal/mol]'] = calculations.hsubl_298
+                    df['dH_sub_298 [kcal/mol]'] = calculations.hsubl_298
                 if calculations.Cp_gas is not None:
                     df['Cp_gas [J/K/mol]'] = calculations.Cp_gas
                     df['Cp_solid [J/K/mol]'] = calculations.Cp_solid
                 if calculations.hsolv_T is not None:
-                    df['G_solv_T [kcal/mol]'] = calculations.gsolv_T
-                    df['H_solv_T [kcal/mol]'] = calculations.hsolv_T
-                    df['S_solv_T [kcal/K/mol]'] = calculations.ssolv_T
+                    df['dG_solv_T [kcal/mol]'] = calculations.gsolv_T
+                    df['dH_solv_T [kcal/mol]'] = calculations.hsolv_T
+                    df['dS_solv_T [kcal/K/mol]'] = calculations.ssolv_T
 
     if df_wrong_input is not None:
         df = pd.concat([df, df_wrong_input], ignore_index=True)
@@ -292,23 +292,22 @@ def write_results(df,
     return df
 
 
-df = pd.read_csv('/home/fhvermei/Software/PycharmProjects/ml_solvation_v01/databases/test.csv')
-predictions = predict_property(csv_path=None,
-                               df=df,
-                               gsolv=True,
-                               hsolv=False,
-                               saq=False,
-                               solute_parameters=False,
-                               reduced_number=False,
-                               validate_data_list=['solute', 'solvent'],
-                               export_csv='./../results_predictions.csv',
-                               logger='/home/fhvermei/Software/PycharmProjects/ml_solvation_v01/databases/test.log')
+# df = pd.read_csv('/home/fhvermei/Software/PycharmProjects/ml_solvation_v01/databases/test.csv')
+# predictions = predict_property(csv_path=None,
+#                                df=df,
+#                                gsolv=True,
+#                                hsolv=False,
+#                                saq=False,
+#                                solute_parameters=False,
+#                                reduced_number=False,
+#                                validate_data_list=['solute', 'solvent'],
+#                                export_csv='./../results_predictions.csv',
+#                                logger='/home/fhvermei/Software/PycharmProjects/ml_solvation_v01/databases/test.log')
 
-df = pd.read_csv('/home/fhvermei/Software/PycharmProjects/ml_solvation_v01/databases/test.csv')
+df = pd.read_csv('/home/fhvermei/Software/PycharmProjects/SolPropML/CombiSolu-Exp.csv')
 results = calculate_solubility(path=None,
                                df=df,
-                               validate_data_list=['solute', 'solvent', 'reference_solvent',
-                                                   'reference_solubility', 'temperature'],
+                               validate_data_list=['solute', 'solvent'],
                                calculate_aqueous=True,
                                reduced_number=False,
                                export_csv='./../results_calculations.csv',
