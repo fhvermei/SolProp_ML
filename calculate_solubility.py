@@ -306,16 +306,16 @@ def write_results(df,
 #                                export_csv='./../results_predictions.csv',
 #                                logger='/home/fhvermei/Software/PycharmProjects/ml_solvation_v01/databases/test.log')
 
-df = pd.read_csv('/home/fhvermei/Software/PycharmProjects/SolPropML/test.csv')
-results = calculate_solubility(path=None,
-                               df=df,
-                               validate_data_list=['solute', 'solvent', 'reference_solvent', 'temperature'],
-                               calculate_aqueous=True,
-                               calculate_Hdiss_T_dep=True,
-                               reduced_number=False,
-                               export_csv='./../results_test.csv',
-                               export_detailed_csv=True,
-                               solv_crit_prop_dict=None,
-                               logger='/home/fhvermei/Software/PycharmProjects/ml_solvation_v01/databases/test.log')
+# df = pd.read_csv('/home/fhvermei/Software/PycharmProjects/SolPropML/test.csv')
+# results = calculate_solubility(path=None,
+#                                df=df,
+#                                validate_data_list=['solute', 'solvent', 'reference_solvent', 'temperature'],
+#                                calculate_aqueous=True,
+#                                calculate_Hdiss_T_dep=True,
+#                                reduced_number=False,
+#                                export_csv='./../results_test.csv',
+#                                export_detailed_csv=True,
+#                                solv_crit_prop_dict=None,
+#                                logger='/home/fhvermei/Software/PycharmProjects/ml_solvation_v01/databases/test.log')
 #
 
