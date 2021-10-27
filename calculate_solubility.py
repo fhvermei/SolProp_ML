@@ -99,7 +99,8 @@ def predict_property(csv_path: str = None,
 
 def calculate_solubility(path: str = None,
                         df: pd.DataFrame = None,
-                        calculate_aqueous: bool = False,
+                        calculate_aqueous: bool = True,
+                        calculate_Hdiss_T_dep: bool = True,
                         validate_data_list: list = [],
                         reduced_number: bool = False,
                         export_csv: str = None,
@@ -112,6 +113,7 @@ def calculate_solubility(path: str = None,
         :param path: specifies the path to the csv file
         :param df: direct import of pandas dataframe
         :param calculate_aqueous: also calculate aqueous solubility even if reference solubility is provided
+        :param calculate_Hdiss_T_dep: calculate solubility with the temperature dependent dissolution enthalpy
         :param validate_data_list: a list data names to validate (also converts inchis to smiles)
         inputs such as the reference solvent smiles inputs (also converts inchis), reference solubility inputs (must be
         number), and temperature inputs (must be number).
@@ -142,7 +144,7 @@ def calculate_solubility(path: str = None,
     predict_reference_solvents = data.reference_solvents is not None and not len([i for i in data.reference_solvents if i]) == 0
     predict_aqueous = calculate_aqueous or not predict_reference_solvents
     predict_t_dep = data.temperatures is not None and (np.min(data.temperatures) < 297. or np.max(data.temperatures) > 299.)
-    calculate_t_dep_with_t_dep_hdiss = predict_t_dep
+    calculate_t_dep_with_t_dep_hdiss = predict_t_dep and calculate_Hdiss_T_dep
 
     models = SolubilityModels(reduced_number=reduced_number,
                               load_g=True,
@@ -304,13 +306,16 @@ def write_results(df,
 #                                export_csv='./../results_predictions.csv',
 #                                logger='/home/fhvermei/Software/PycharmProjects/ml_solvation_v01/databases/test.log')
 
-df = pd.read_csv('/home/fhvermei/Software/PycharmProjects/SolPropML/CombiSolu-Exp.csv')
+df = pd.read_csv('/home/fhvermei/Software/PycharmProjects/SolPropML/test.csv')
 results = calculate_solubility(path=None,
                                df=df,
-                               validate_data_list=['solute', 'solvent'],
+                               validate_data_list=['solute', 'solvent', 'reference_solvent', 'temperature'],
                                calculate_aqueous=True,
+                               calculate_Hdiss_T_dep=True,
                                reduced_number=False,
-                               export_csv='./../results_calculations.csv',
+                               export_csv='./../results_test.csv',
                                export_detailed_csv=True,
                                solv_crit_prop_dict=None,
                                logger='/home/fhvermei/Software/PycharmProjects/ml_solvation_v01/databases/test.log')
+#
+
