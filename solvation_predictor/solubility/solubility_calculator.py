@@ -5,6 +5,7 @@ import rdkit.Chem as Chem
 import CoolProp.CoolProp as CP
 from scipy.integrate import quad
 from solvation_predictor.solubility.solubility_predictions import SolubilityPredictions
+import pkgutil, io
 
 
 class SolubilityCalculations:
@@ -141,10 +142,14 @@ class SolubilityCalculations:
             # load solvent's CoolProp name, critical temperature, and critical density data
             # if the solvent critical property dictionary (solv_crit_prop_dict) is not provided, use the default one.
             if self.solv_crit_prop_dict is None:
-                current_path = os.path.dirname(os.path.abspath(__file__))
-                crit_data_path = os.path.join(current_path, 'solvent_crit_data.json')
-                with open(crit_data_path) as f:
-                    self.solv_crit_prop_dict = json.load(f)  # inchi with fixed H is used as a solvent key
+                #load from package
+                #current_path = os.path.dirname(os.path.abspath(__file__))
+                #crit_data_path = os.path.join(current_path, 'solvent_crit_data.json')
+                #with open(crit_data_path) as f:
+                #    self.solv_crit_prop_dict = json.load(f)  # inchi with fixed H is used as a solvent key
+                path = os.path.join('solubility', 'solvent_crit_data.json')
+                crit_data_path = io.BytesIO(pkgutil.get_data('solvation_predictor', path))
+                self.solv_crit_prop_dict = json.load(crit_data_path)  # inchi with fixed H is used as a solvent key
 
             coolprop_name_list, crit_t_list, crit_d_list = \
                 self.get_solvent_info(predictions.data.smiles_pairs, self.solv_crit_prop_dict)

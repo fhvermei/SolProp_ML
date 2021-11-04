@@ -37,11 +37,11 @@ class SolubilityModels:
             :returns: model input, model scalers, and model parameters
         """
         number = 10 if not reduced_number else 3
-        path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        paths = [os.path.join(path, 'trained_models', 'Gsolv', 'model_Gsolv_' + str(i) + '.pt')
+        #path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        paths = [os.path.join('trained_models', 'Gsolv', 'model_Gsolv_' + str(i) + '.pt')
                        for i in range(number)]
         if verbose:
-            self.logger(f'Loading {number} solvation free energy models from {path}')
+            self.logger(f'Loading {number} solvation free energy models')
         input = inp_Gsolv.InputArguments()
         input.add_hydrogens_to_solvent = False
         input.num_mols = 2
@@ -52,8 +52,8 @@ class SolubilityModels:
         models = []
         for p in paths:
             input.model_path = p
-            scaler = load_scaler(p, from_package=False)
-            model = load_checkpoint(p, input, from_package=False)
+            scaler = load_scaler(p, from_package=True)
+            model = load_checkpoint(p, input, from_package=True)
             scalers.append(scaler)
             models.append(model)
         return input, scalers, models
@@ -65,19 +65,19 @@ class SolubilityModels:
             :returns: model input, model scalers, and model parameters
         """
         number = 12 if not reduced_number else 3
-        path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        #path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-        paths = [os.path.join(path, 'trained_models', 'Hsolv', 'model_Hsolv_' + str(i) + '.pt')
+        paths = [os.path.join('trained_models', 'Hsolv', 'model_Hsolv_' + str(i) + '.pt')
                        for i in range(number)]
         if verbose:
-            self.logger(f'Loading {number} solvation enthalpy models from {path}')
+            self.logger(f'Loading {number} solvation enthalpy models')
         input = inp_Hsolv.InputArguments()
         scalers = []
         models = []
         for p in paths:
             input.model_path = p
-            scaler = load_scaler(p, from_package=False)
-            model = load_checkpoint(p, input, from_package=False)
+            scaler = load_scaler(p, from_package=True)
+            model = load_checkpoint(p, input, from_package=True)
             scalers.append(scaler)
             models.append(model)
         return input, scalers, models
@@ -89,19 +89,19 @@ class SolubilityModels:
             :returns: model input, model scalers, and model parameters
         """
         number = 30 if not reduced_number else 3
-        path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        #path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-        paths = [os.path.join(path, 'trained_models', 'Saq', 'model_' + str(i) + '.pt')
+        paths = [os.path.join('trained_models', 'Saq', 'model_' + str(i) + '.pt')
                        for i in range(number)]
         if verbose:
-            self.logger(f'Loading {number} aqueous solubility models from {path}')
+            self.logger(f'Loading {number} aqueous solubility models')
         input = inp_logSaq.InputArguments()
         scalers = []
         models = []
         for p in paths:
             input.model_path = p
-            scaler = load_scaler(p, from_package=False)
-            model = load_checkpoint(p, input, from_package=False)
+            scaler = load_scaler(p, from_package=True)
+            model = load_checkpoint(p, input, from_package=True)
             scalers.append(scaler)
             models.append(model)
         return input, scalers, models

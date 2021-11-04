@@ -6,7 +6,7 @@ class InputArguments:
         self.optimization = False
 
         #reading and processing data
-        self.dir = "/home/gridsan/fhvermei/SP_logS_new/solvation_predictor/"
+        self.dir = "/home/gridsan/fhvermei/SP_logS_new/solprop/"
         #self.input_file = self.dir + "databases/logP/active_learning/theory_reduced.csv"
         self.input_file = self.dir + "databases/Hsolv/training_db4_dHsolv_AllRandom.csv"
         self.split_ratio = (0.8, 0.1, 0.1)
