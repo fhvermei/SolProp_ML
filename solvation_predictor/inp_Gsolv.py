@@ -6,12 +6,12 @@ class InputArguments:
         self.optimization = False
 
         #reading and processing data
-        self.dir = "/home/gridsan/fhvermei/SP_logS_new/solvation_predictor/"
+        self.dir = "/home/gridsan/fhvermei/SP/solprop/"
         #self.input_file = self.dir + "databases/logP/active_learning/theory_reduced.csv"
-        self.input_file = self.dir + "databases/Hsolv/training_db4_dHsolv_AllRandom.csv"
+        self.input_file = self.dir + "databases/logS/logS_solvents.csv"
         self.split_ratio = (0.8, 0.1, 0.1)
         self.seed = 0
-        self.output_dir = self.dir + "examples/Hsolv/exp_pretrained/00"
+        self.output_dir = self.dir + "examples/logS/predict"
         self.model_path = self.dir + "examples/Publication/exp_pretrain/all"
         self.make_plots = True
         self.scale = "standard"  # standard or minmax
@@ -21,10 +21,9 @@ class InputArguments:
         self.kmeans_split_base = "solvent"  # solvent or solute depending on if you want first or second molecule
         self.save_memory = False
 
-
         # for featurization
         self.property = "solvation"  # alternatives are solvation, Tm and logS
-        self.add_hydrogens_to_solvent = False  # adds hydrogens to solvents (first column) if you have 2 input smiles
+        self.add_hydrogens_to_solvent = True  # adds hydrogens to solvents (first column) if you have 2 input smiles
         self.mix = False  # features are fractions of the different molecules in the same order
 
         # for active learning
@@ -36,13 +35,13 @@ class InputArguments:
         self.AL_spit_ratio = (0.3, 0.4, 0.3)  # split between initial train data, experimental data and test set
 
         # for training
-        self.num_folds = 1
+        self.num_folds = 10
         self.num_models = 1
-        self.epochs = 30
+        self.epochs = 20
         self.batch_size = 50
         self.loss_metric = "rmse"
         self.pretraining = True
-        self.pretraining_path = self.dir + "examples/Hsolv/QM_models/Hsolv_00_model.pt"
+        self.pretraining_path = self.dir + "examples/Publication/QM/"
         self.pretraining_fix = "mpn"  # mpn or ffn or none or onlylast or mpn1 or onlylast1 if you have only one molecule
         self.learning_rates = (0.001, 0.0001, 0.001)  # initial, final, max
         self.warm_up_epochs = 2.0  # you need min 1 with adam optimizer and Noam learning rate scheduler
@@ -71,15 +70,16 @@ class InputArguments:
         # e first in the input file
         #self.dummy_atom_for_single_atoms = True
 
+        # for attention
         self.attention = False  # True or false
         self.att_hidden = 200
         self.att_dropout = 0.0
         self.att_bias = False
         self.att_activation = "ReLU"
-        self.att_normalize = "sigmoid"  # sigmoid or softmax or logsigmoid of logsoftmax or None
+        self.att_normalize = "sigmoid" #sigmoid or softmax or logsigmoid of logsoftmax or None
         self.att_first_normalize = False
 
-        # for ffn
+        #for ffn
         self.ffn_hidden = 500
         self.ffn_num_layers = 4
         self.ffn_dropout = 0.00
@@ -89,13 +89,13 @@ class InputArguments:
         # results
         self.print_weigths = False
 
-        # for predicting
-        # self.model_path = self.dir + "examples/train_wo_ions/scan_ffn/20_1000_wo_water/fold_1/model0/model.pt"
+        #for predicting
+        #self.model_path = self.dir + "examples/train_wo_ions/scan_ffn/20_1000_wo_water/fold_1/model0/model.pt"
 
         self.postprocess = False
 
         # DONT CHANGE!
-        self.num_mols = 2
+        self.num_mols = 1
         self.f_mol_size = 2
         self.num_targets = 1
         self.num_features = 0

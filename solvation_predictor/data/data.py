@@ -6,7 +6,6 @@ import torch
 from rdkit import Chem
 from rdkit.Chem.Scaffolds import MurckoScaffold
 from torch import nn
-from rdkit.Chem import Descriptors
 from solvation_predictor.features.molecule_encoder import MolEncoder
 from torch.utils.data.dataset import Dataset
 import random
