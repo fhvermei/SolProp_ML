@@ -63,7 +63,8 @@ class SolubilityCalculations:
         self.logs_T_with_const_hdiss_from_ref, self.logs_T_with_T_dep_hdiss_from_ref = None, None
 
         if predictions is not None:
-            self.logger('Start making logS calculations')
+            if verbose:
+                self.logger('Start making logS calculations')
             self.make_calculations_298(predictions=predictions,
                                        calculate_aqueous=calculate_aqueous,
                                        calculate_reference_solvents=calculate_reference_solvents,
