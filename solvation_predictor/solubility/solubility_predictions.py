@@ -1,5 +1,4 @@
 import numpy as np
-from chemprop_solvation.solvation_estimator import load_SoluteML_estimator
 
 from solvation_predictor.data.data import DatapointList, DataPoint
 from solvation_predictor.solubility.solubility_data import SolubilityData
@@ -154,7 +153,7 @@ class SolubilityPredictions:
         unique_solute_smiles = [[sm] for sm in set(solute_smiles)]
         results = dict()
         uncertainties = dict()
-        average_prediction, epistemic_uncertainty, valid_indices = load_SoluteML_estimator()(unique_solute_smiles)
+        average_prediction, epistemic_uncertainty, valid_indices = self.models.solute_models(unique_solute_smiles)
         for i, sm in enumerate(unique_solute_smiles):
             results[sm[0]] = average_prediction[i]
             uncertainties[sm[0]] = epistemic_uncertainty[i]

@@ -85,7 +85,8 @@ def predict_property(csv_path: str = None,
     if len(validate_data_list) > 0:
         df = data.df
         df_wrong_input = data.df_wrong_input
-    models = SolubilityModels(reduced_number=reduced_number, load_g=gsolv, load_h=hsolv, load_saq=saq, logger=logger)
+    models = SolubilityModels(reduced_number=reduced_number, load_g=gsolv, load_h=hsolv, load_saq=saq,
+                              load_solute=solute_parameters, logger=logger)
     predictions = SolubilityPredictions(data, models, predict_solute_parameters=solute_parameters, logger=logger)
 
     if export_csv is not None:
@@ -150,6 +151,7 @@ def calculate_solubility(path: str = None,
                               load_g=True,
                               load_h=predict_t_dep,
                               load_saq=predict_aqueous,
+                              load_solute=predict_t_dep,
                               logger=logger)
 
     predictions = SolubilityPredictions(data,

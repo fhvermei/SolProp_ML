@@ -1,4 +1,5 @@
 import os
+from chemprop_solvation.solvation_estimator import load_SoluteML_estimator
 
 from solvation_predictor import inp_logSaq, inp_Gsolv, inp_Hsolv
 from solvation_predictor.train.train import load_checkpoint, load_scaler
@@ -9,6 +10,7 @@ class SolubilityModels:
                  load_g: bool = False,
                  load_h: bool = False,
                  load_saq: bool = False,
+                 load_solute: bool = False,
                  logger=None,
                  verbose=True):
         """
@@ -17,18 +19,21 @@ class SolubilityModels:
             :param load_g: load models for solvation free energy
             :param load_h: load models for solvation enthalpy
             :param load_saq: load models for aqueous solubility
+            :param load_solute: load models for solute parameters
             :param logger: logger file
             :param verbose: whether to show logger info or not
         """
         self.g_models = None
         self.h_models = None
         self.saq_models = None
+        self.solute_models = None
         self.logger = logger.info if logger is not None else print
 
         if load_g or load_h or load_saq:
             self.g_models = self.load_g_models(reduced_number=reduced_number, verbose=verbose) if load_g else None
             self.h_models = self.load_h_models(reduced_number=reduced_number, verbose=verbose) if load_h else None
             self.saq_models = self.load_saq_models(reduced_number=reduced_number, verbose=verbose) if load_saq else None
+            self.solute_models = load_SoluteML_estimator() if load_solute else None
 
     def load_g_models(self, reduced_number=False, verbose=True):
         """
