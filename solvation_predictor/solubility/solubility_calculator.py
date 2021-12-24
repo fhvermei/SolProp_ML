@@ -136,8 +136,8 @@ class SolubilityCalculations:
 
         if calculate_t_dep_with_t_dep_hdiss:
             self.Cp_solid = self.get_Cp_solid(self.E, self.S, self.A, self.B, self.V,
-                                              I_OHnonadj=self.I_OHnonadj)
-            self.Cp_gas = self.get_Cp_gas(self.E, self.S, self.A, self.B, self.V)
+                                              I_OHnonadj=self.I_OHnonadj)  # in cal/mol/K
+            self.Cp_gas = self.get_Cp_gas(self.E, self.S, self.A, self.B, self.V)  # in cal/mol/K
 
             # load solvent's CoolProp name, critical temperature, and critical density data
             # if the solvent critical property dictionary (solv_crit_prop_dict) is not provided, use the default one.
@@ -526,9 +526,11 @@ class SolubilityCalculations:
 
     def integrate_t_dep_hdiss(self, hsolv_integral, hsubl_298, Cp_solid, Cp_gas, T):
         '''
-        hsubl_298 in kcal/mol. Cp_solid and Cp_gas in J/K/mol. T in K.
+        hsubl_298 in kcal/mol. Cp_solid and Cp_gas in cal/K/mol. T in K.
         '''
         hsubl_298 = hsubl_298 * 4.184 * 1000  # convert from kcal/mol to J/mol
+        Cp_solid = Cp_solid * 4.184  # convert from cal/mol/K to J/mol/K
+        Cp_gas = Cp_gas * 4.184  # convert from cal/mol/K to J/mol/K
         hsub_integral = (- hsubl_298) / 8.314 * (1 / T - 1 / 298)
         Cpsolid_integral = (-Cp_solid * 298) / 8.314 * (1 / T - 1 / 298) \
                            + (-Cp_solid) / 8.314 * np.log(T / 298)

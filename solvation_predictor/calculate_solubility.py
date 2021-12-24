@@ -279,8 +279,8 @@ def write_results(df,
                     df['amine parameter'] = calculations.I_NH
                     df['dH_sub_298 [kcal/mol]'] = calculations.hsubl_298
                 if calculations.Cp_gas is not None:
-                    df['Cp_gas [J/K/mol]'] = calculations.Cp_gas
-                    df['Cp_solid [J/K/mol]'] = calculations.Cp_solid
+                    df['Cp_gas [cal/K/mol]'] = calculations.Cp_gas
+                    df['Cp_solid [cal/K/mol]'] = calculations.Cp_solid
                 if calculations.hsolv_T is not None:
                     df['dG_solv_T [kcal/mol]'] = calculations.gsolv_T
                     df['dH_solv_T [kcal/mol]'] = calculations.hsolv_T
