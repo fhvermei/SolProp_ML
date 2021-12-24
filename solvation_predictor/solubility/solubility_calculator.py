@@ -29,6 +29,9 @@ class SolubilityCalculations:
                  calculate_t_dep: bool = None,
                  calculate_t_dep_with_t_dep_hdiss: bool = None,
                  solv_crit_prop_dict: dict = None,
+                 hsubl_298: np.array = None,
+                 Cp_solid: np.array = None,
+                 Cp_gas: np.array = None,
                  logger=None,
                  verbose=True):
 
@@ -51,8 +54,9 @@ class SolubilityCalculations:
         self.unc_E, self.unc_S, self.unc_A, self.unc_B, self.unc_L = None, None, None, None, None
         self.V = None
         self.I_OHadj, self.I_OHnonadj, self.I_NH = None, None, None
-        self.hsubl_298 = None
-        self.Cp_solid, self.Cp_gas = None, None
+        self.hsubl_298 = hsubl_298 if hsubl_298 is not None else None
+        self.Cp_solid = Cp_solid if Cp_solid is not None else None
+        self.Cp_gas = Cp_gas if Cp_gas is not None else None
         self.logs_T_with_const_hdiss_from_aq, self.logs_T_with_T_dep_hdiss_from_aq = None, None
         self.logs_T_with_const_hdiss_warning_message, self.logs_T_with_T_dep_hdiss_error_message = None, None
         self.hsolv_T, self.gsolv_T, self.ssolv_T = None, None, None
@@ -127,17 +131,20 @@ class SolubilityCalculations:
 
         self.V = np.array([self.calculate_solute_parameter_v(sm[1]) for sm in predictions.data.smiles_pairs])
         self.I_OHadj, self.I_OHnonadj, self.I_NH = self.get_diol_amine_ids(predictions.data.smiles_pairs)
-        self.hsubl_298 = self.get_hsubl_298(self.E, self.S, self.A, self.B, self.V,
-                                            I_OHadj=self.I_OHadj,
-                                            I_OHnonadj=self.I_OHnonadj,
-                                            I_NH=self.I_NH)
+        if self.hsubl_298 is None:
+            self.hsubl_298 = self.get_hsubl_298(self.E, self.S, self.A, self.B, self.V,
+                                                I_OHadj=self.I_OHadj,
+                                                I_OHnonadj=self.I_OHnonadj,
+                                                I_NH=self.I_NH)
         self.logs_T_with_const_hdiss_warning_message = self.get_logs_t_with_const_hdiss_warning_message(
             temperatures=predictions.data.temperatures)
 
         if calculate_t_dep_with_t_dep_hdiss:
-            self.Cp_solid = self.get_Cp_solid(self.E, self.S, self.A, self.B, self.V,
-                                              I_OHnonadj=self.I_OHnonadj)  # in cal/mol/K
-            self.Cp_gas = self.get_Cp_gas(self.E, self.S, self.A, self.B, self.V)  # in cal/mol/K
+            if self.Cp_solid is None:
+                self.Cp_solid = self.get_Cp_solid(self.E, self.S, self.A, self.B, self.V,
+                                                  I_OHnonadj=self.I_OHnonadj)  # in cal/mol/K
+            if self.Cp_gas is None:
+                self.Cp_gas = self.get_Cp_gas(self.E, self.S, self.A, self.B, self.V)  # in cal/mol/K
 
             # load solvent's CoolProp name, critical temperature, and critical density data
             # if the solvent critical property dictionary (solv_crit_prop_dict) is not provided, use the default one.
