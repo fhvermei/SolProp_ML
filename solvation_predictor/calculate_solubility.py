@@ -52,8 +52,32 @@ def convert_arrays_to_df(solvent_smiles,
     return df
 
 
+def load_models(reduced_number: bool = False,
+                load_g: bool = True,
+                load_h: bool = True,
+                load_saq: bool = True,
+                load_solute: bool = True,
+                logger=None) -> SolubilityModels:
+    """
+    Function to load the ML models for solvation free energy, enthalpy, aqueous solubility, and solute parameters.
+        :param reduced_number: use a reduced number of models for faster but less accurate prediction (does not work for solute_parameters)
+        :param load_g: load the model for solvation free energies
+        :param load_h: load the model for solvation enthalpies
+        :param load_saq: load the model for aqueous solubility
+        :param load_solute: load the model for Abraham solute parameters
+    """
+    models = SolubilityModels(reduced_number=reduced_number,
+                                    load_g=load_g,
+                                    load_h=load_h,
+                                    load_saq=load_saq,
+                                    load_solute=load_solute,
+                                    logger=logger)
+    return models
+
+
 def predict_property(csv_path: str = None,
                      df: pd.DataFrame = None,
+                     models: SolubilityModels = None,
                      gsolv: bool = False,
                      hsolv: bool = False,
                      saq: bool = False,
@@ -67,6 +91,7 @@ def predict_property(csv_path: str = None,
     Data is read from a csv file or a pandas dataframe.
         :param csv_path: specifies the path to the csv file
         :param df: direct import of pandas dataframe
+        :param models: models of the type SolubilityModels
         :param gsolv: predict solvation free energies
         :param hsolv: predict solvation enthalpies
         :param saq: predict aqueous solubility
@@ -85,8 +110,9 @@ def predict_property(csv_path: str = None,
     if len(validate_data_list) > 0:
         df = data.df
         df_wrong_input = data.df_wrong_input
-    models = SolubilityModels(reduced_number=reduced_number, load_g=gsolv, load_h=hsolv, load_saq=saq,
-                              load_solute=solute_parameters, logger=logger)
+    if models is None:
+        models = SolubilityModels(reduced_number=reduced_number, load_g=gsolv, load_h=hsolv, load_saq=saq,
+                                  load_solute=solute_parameters, logger=logger)
     predictions = SolubilityPredictions(data, models, predict_solute_parameters=solute_parameters, logger=logger)
 
     if export_csv is not None:
@@ -100,6 +126,7 @@ def predict_property(csv_path: str = None,
 
 def calculate_solubility(path: str = None,
                         df: pd.DataFrame = None,
+                        models: SolubilityModels = None,
                         calculate_aqueous: bool = True,
                         calculate_Hdiss_T_dep: bool = True,
                         validate_data_list: list = [],
@@ -113,6 +140,7 @@ def calculate_solubility(path: str = None,
     Data is read from a csv file or a pandas dataframe.
         :param path: specifies the path to the csv file
         :param df: direct import of pandas dataframe
+        :param models: models of the type SolubilityModels
         :param calculate_aqueous: also calculate aqueous solubility even if reference solubility is provided
         :param calculate_Hdiss_T_dep: calculate solubility with the temperature dependent dissolution enthalpy
         :param validate_data_list: a list data names to validate (also converts inchis to smiles)
@@ -147,12 +175,13 @@ def calculate_solubility(path: str = None,
     predict_t_dep = data.temperatures is not None and (np.min(data.temperatures) < 297. or np.max(data.temperatures) > 299.)
     calculate_t_dep_with_t_dep_hdiss = predict_t_dep and calculate_Hdiss_T_dep
 
-    models = SolubilityModels(reduced_number=reduced_number,
-                              load_g=True,
-                              load_h=predict_t_dep,
-                              load_saq=predict_aqueous,
-                              load_solute=predict_t_dep,
-                              logger=logger)
+    if models is None:
+        models = SolubilityModels(reduced_number=reduced_number,
+                                  load_g=True,
+                                  load_h=predict_t_dep,
+                                  load_saq=predict_aqueous,
+                                  load_solute=predict_t_dep,
+                                  logger=logger)
 
     predictions = SolubilityPredictions(data,
                                         models,
