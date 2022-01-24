@@ -29,6 +29,9 @@ class SolubilityCalculations:
                  calculate_t_dep: bool = None,
                  calculate_t_dep_with_t_dep_hdiss: bool = None,
                  solv_crit_prop_dict: dict = None,
+                 hsubl_298: np.array = None,
+                 Cp_solid: np.array = None,
+                 Cp_gas: np.array = None,
                  logger=None,
                  verbose=True):
 
@@ -51,15 +54,17 @@ class SolubilityCalculations:
         self.unc_E, self.unc_S, self.unc_A, self.unc_B, self.unc_L = None, None, None, None, None
         self.V = None
         self.I_OHadj, self.I_OHnonadj, self.I_NH = None, None, None
-        self.hsubl_298 = None
-        self.Cp_solid, self.Cp_gas = None, None
+        self.hsubl_298 = hsubl_298 if hsubl_298 is not None else None
+        self.Cp_solid = Cp_solid if Cp_solid is not None else None
+        self.Cp_gas = Cp_gas if Cp_gas is not None else None
         self.logs_T_with_const_hdiss_from_aq, self.logs_T_with_T_dep_hdiss_from_aq = None, None
         self.logs_T_with_const_hdiss_warning_message, self.logs_T_with_T_dep_hdiss_error_message = None, None
         self.hsolv_T, self.gsolv_T, self.ssolv_T = None, None, None
         self.logs_T_with_const_hdiss_from_ref, self.logs_T_with_T_dep_hdiss_from_ref = None, None
 
         if predictions is not None:
-            self.logger('Start making logS calculations')
+            if verbose:
+                self.logger('Start making logS calculations')
             self.make_calculations_298(predictions=predictions,
                                        calculate_aqueous=calculate_aqueous,
                                        calculate_reference_solvents=calculate_reference_solvents,
@@ -127,17 +132,20 @@ class SolubilityCalculations:
 
         self.V = np.array([self.calculate_solute_parameter_v(sm[1]) for sm in predictions.data.smiles_pairs])
         self.I_OHadj, self.I_OHnonadj, self.I_NH = self.get_diol_amine_ids(predictions.data.smiles_pairs)
-        self.hsubl_298 = self.get_hsubl_298(self.E, self.S, self.A, self.B, self.V,
-                                            I_OHadj=self.I_OHadj,
-                                            I_OHnonadj=self.I_OHnonadj,
-                                            I_NH=self.I_NH)
+        if self.hsubl_298 is None:
+            self.hsubl_298 = self.get_hsubl_298(self.E, self.S, self.A, self.B, self.V,
+                                                I_OHadj=self.I_OHadj,
+                                                I_OHnonadj=self.I_OHnonadj,
+                                                I_NH=self.I_NH)
         self.logs_T_with_const_hdiss_warning_message = self.get_logs_t_with_const_hdiss_warning_message(
             temperatures=predictions.data.temperatures)
 
         if calculate_t_dep_with_t_dep_hdiss:
-            self.Cp_solid = self.get_Cp_solid(self.E, self.S, self.A, self.B, self.V,
-                                              I_OHnonadj=self.I_OHnonadj)
-            self.Cp_gas = self.get_Cp_gas(self.E, self.S, self.A, self.B, self.V)
+            if self.Cp_solid is None:
+                self.Cp_solid = self.get_Cp_solid(self.E, self.S, self.A, self.B, self.V,
+                                                  I_OHnonadj=self.I_OHnonadj)  # in cal/mol/K
+            if self.Cp_gas is None:
+                self.Cp_gas = self.get_Cp_gas(self.E, self.S, self.A, self.B, self.V)  # in cal/mol/K
 
             # load solvent's CoolProp name, critical temperature, and critical density data
             # if the solvent critical property dictionary (solv_crit_prop_dict) is not provided, use the default one.
@@ -526,9 +534,11 @@ class SolubilityCalculations:
 
     def integrate_t_dep_hdiss(self, hsolv_integral, hsubl_298, Cp_solid, Cp_gas, T):
         '''
-        hsubl_298 in kcal/mol. Cp_solid and Cp_gas in J/K/mol. T in K.
+        hsubl_298 in kcal/mol. Cp_solid and Cp_gas in cal/K/mol. T in K.
         '''
         hsubl_298 = hsubl_298 * 4.184 * 1000  # convert from kcal/mol to J/mol
+        Cp_solid = Cp_solid * 4.184  # convert from cal/mol/K to J/mol/K
+        Cp_gas = Cp_gas * 4.184  # convert from cal/mol/K to J/mol/K
         hsub_integral = (- hsubl_298) / 8.314 * (1 / T - 1 / 298)
         Cpsolid_integral = (-Cp_solid * 298) / 8.314 * (1 / T - 1 / 298) \
                            + (-Cp_solid) / 8.314 * np.log(T / 298)
