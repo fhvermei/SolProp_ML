@@ -134,24 +134,28 @@ def validate_smiles(mol_input, error_msg, mol_type):
     return mol_smiles, error_msg
 
 
-def clean_up_value(value, deci_place=4, sig_fig=2, only_big=False):
+def clean_up_value(value, sigfigs=3, lower_limit=1e-1, upper_limit=1000):
     """
-    Round the given value to the given decimal place (`deci_place`).
-    If the absolute value of the given value is too big or too small, return the value in
-    scientific notation with the given significant figure (`sig_fig`).
+    Round the given value to the specified number of significant figures.
+
+    If lower_limit <= abs(value) <= upper_limit, return fixed notation.
+    Otherwise, return exponential notation.
+
+    Args:
+        value (float): number to format
+        sigfigs (int, optional): number of significant figures
+        lower_limit (float, optional): lower threshold for exponential notation
+        upper_limit (float, optional): upper threshold for exponential notation
+
+    Returns:
+        str: rounded value
     """
     if value is None:
         return value
-    if only_big is True:
-        if abs(value) < 1000:
-            return "{:.{}f}".format(value, deci_place)
-        else:
-            return "{:.{}e}".format(value, sig_fig)
+    if (lower_limit and abs(value) < lower_limit) or (upper_limit and abs(value) > upper_limit):
+        return np.format_float_scientific(value, precision=sigfigs - 1)  # precision only counts digits after decimal
     else:
-        if 1e-1 < abs(value) < 1000:
-            return "{:.{}f}".format(value, deci_place)
-        else:
-            return "{:.{}e}".format(value, sig_fig)
+        return np.format_float_positional(value, precision=sigfigs, fractional=False)  # precision counts sig digits
 
 
 def get_solubility_pred(solvent_smiles, solute_smiles, temp, ref_solvent_smiles, ref_solubility, ref_temp,
@@ -251,17 +255,20 @@ def make_solubility_prediction(models=None, solvent_list=None, solute_list=None,
         # Append the results
         result_val_list = [solvent, solute, temp, ref_solvent, ref_solubility, ref_temp, hsub298, cp_gas_298,
                            cp_solid_298, input_error_msg, warning_msg, ] + pred_val_list
-        clean_up_col_name_list = ['dGsolvT', 'dHsolvT', 'dSsolvT', 'Pred. Hsub298', 'Pred. Cpg298',
-                                  'Pred. Cps298', 'dGsolv298 [kcal/mol]', 'uncertainty dGsolv298 [kcal/mol]',
+        clean_up_col_name_list = ['logST (method1) [log10(mol/L)]', 'logST (method2) [log10(mol/L)]',
+                                  'dGsolvT [kcal/mol]', 'dHsolvT [kcal/mol]', 'dSsolvT [cal/K/mol]',
+                                  'Pred. Hsub298 [kcal/mol]', 'Pred. Cpg298 [cal/K/mol]', 'Pred. Cps298 [cal/K/mol]',
+                                  'logS298 [log10(mol/L)]', 'uncertainty logS298 [log10(mol/L)]',
+                                  'dGsolv298 [kcal/mol]', 'uncertainty dGsolv298 [kcal/mol]',
                                   'dHsolv298 [kcal/mol]', 'uncertainty dHsolv298 [kcal/mol]',
                                   'E', 'S', 'A', 'B', 'L', 'V']
 
         for key, val in zip(col_name_list, result_val_list):
             if key in clean_up_col_name_list:
                 if key in ['E', 'S', 'A', 'B', 'L', 'V']:
-                    val = clean_up_value(val, deci_place=4, sig_fig=2, only_big=False)
+                    val = clean_up_value(val, sigfigs=4)
                 else:
-                    val = clean_up_value(val, deci_place=2, sig_fig=2, only_big=True)
+                    val = clean_up_value(val, sigfigs=3, lower_limit=0)
             solubility_results[key].append(val)
 
     return solubility_results
