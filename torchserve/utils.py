@@ -219,15 +219,21 @@ def make_solubility_prediction(models=None, solvent_list=None, solute_list=None,
 
     # Prepare an empty result dictionary
     solubility_results = {}
-    col_name_list = ['Solvent', 'Solute', 'Temp', 'Ref. Solv', 'Ref. Solub', 'Ref. Temp',
-                     'Input Hsub298', 'Input Cpg298', 'Input Cps298', 'Error Message', 'Warning Message',
-                     'logST (method1) [log10(mol/L)]', 'logST (method2) [log10(mol/L)]',
-                     'dGsolvT [kcal/mol]', 'dHsolvT [kcal/mol]', 'dSsolvT [cal/K/mol]',
-                     'Pred. Hsub298 [kcal/mol]', 'Pred. Cpg298 [cal/K/mol]', 'Pred. Cps298 [cal/K/mol]',
-                     'logS298 [log10(mol/L)]', 'uncertainty logS298 [log10(mol/L)]',
-                     'dGsolv298 [kcal/mol]', 'uncertainty dGsolv298 [kcal/mol]',
-                     'dHsolv298 [kcal/mol]', 'uncertainty dHsolv298 [kcal/mol]',
-                     'E', 'S', 'A', 'B', 'L', 'V']
+    input_col_name_list = [
+        'Solvent', 'Solute', 'Temp', 'Ref. Solv', 'Ref. Solub', 'Ref. Temp',
+        'Input Hsub298', 'Input Cpg298', 'Input Cps298',
+        'Error Message', 'Warning Message',
+    ]
+    output_col_name_list = [
+        'logST (method1) [log10(mol/L)]', 'logST (method2) [log10(mol/L)]',
+        'dGsolvT [kcal/mol]', 'dHsolvT [kcal/mol]', 'dSsolvT [cal/K/mol]',
+        'Pred. Hsub298 [kcal/mol]', 'Pred. Cpg298 [cal/K/mol]', 'Pred. Cps298 [cal/K/mol]',
+        'logS298 [log10(mol/L)]', 'uncertainty logS298 [log10(mol/L)]',
+        'dGsolv298 [kcal/mol]', 'uncertainty dGsolv298 [kcal/mol]',
+        'dHsolv298 [kcal/mol]', 'uncertainty dHsolv298 [kcal/mol]',
+        'E', 'S', 'A', 'B', 'L', 'V'
+    ]
+    col_name_list = input_col_name_list + output_col_name_list
 
     for col_name in col_name_list:
         solubility_results[col_name] = []
@@ -236,35 +242,31 @@ def make_solubility_prediction(models=None, solvent_list=None, solute_list=None,
             in zip(solvent_list, solute_list, temp_list, ref_solvent_list, ref_solubility_list, ref_temp_list,
                    hsub298_list, cp_gas_298_list, cp_solid_298_list):
         # Initialize the outputs
-        logST_method1, logST_method2, dGsolvT, dHsolvT, dSsolvT = None, None, None, None, None
-        Hsub298_pred, Cpg298_pred, Cps298_pred = None, None, None
-        input_error_msg, warning_msg = None, None
+        error_msg, warning_msg = None, None
+
         # First check whether solvent and solute have valid SMILES
-        solvent_smiles, input_error_msg = validate_smiles(solvent, input_error_msg, 'Solvent SMILES')
-        solute_smiles, input_error_msg = validate_smiles(solute, input_error_msg, 'Solute SMILES')
+        solvent_smiles, error_msg = validate_smiles(solvent, error_msg, 'Solvent SMILES')
+        solute_smiles, error_msg = validate_smiles(solute, error_msg, 'Solute SMILES')
         if ref_solvent is not None:
-            ref_solvent_smiles, input_error_msg = validate_smiles(ref_solvent, input_error_msg, 'Ref. solvent SMILES')
+            ref_solvent_smiles, error_msg = validate_smiles(ref_solvent, error_msg, 'Ref. solvent SMILES')
         else:
             ref_solvent_smiles = None
+
         # Get the predictions if there is no error with input
-        if input_error_msg is None:
-            pred_val_list, input_error_msg, warning_msg = \
-                get_solubility_pred(solvent_smiles, solute_smiles, temp, ref_solvent_smiles, ref_solubility, ref_temp,
-                                    hsub298, cp_gas_298, cp_solid_298, models)
+        if error_msg is None:
+            pred_val_list, error_msg, warning_msg = get_solubility_pred(solvent_smiles, solute_smiles, temp,
+                                                                        ref_solvent_smiles, ref_solubility, ref_temp,
+                                                                        hsub298, cp_gas_298, cp_solid_298, models)
+        else:
+            pred_val_list = [None for _ in output_col_name_list]
 
         # Append the results
-        result_val_list = [solvent, solute, temp, ref_solvent, ref_solubility, ref_temp, hsub298, cp_gas_298,
-                           cp_solid_298, input_error_msg, warning_msg, ] + pred_val_list
-        clean_up_col_name_list = ['logST (method1) [log10(mol/L)]', 'logST (method2) [log10(mol/L)]',
-                                  'dGsolvT [kcal/mol]', 'dHsolvT [kcal/mol]', 'dSsolvT [cal/K/mol]',
-                                  'Pred. Hsub298 [kcal/mol]', 'Pred. Cpg298 [cal/K/mol]', 'Pred. Cps298 [cal/K/mol]',
-                                  'logS298 [log10(mol/L)]', 'uncertainty logS298 [log10(mol/L)]',
-                                  'dGsolv298 [kcal/mol]', 'uncertainty dGsolv298 [kcal/mol]',
-                                  'dHsolv298 [kcal/mol]', 'uncertainty dHsolv298 [kcal/mol]',
-                                  'E', 'S', 'A', 'B', 'L', 'V']
+        input_val_list = [solvent, solute, temp, ref_solvent, ref_solubility, ref_temp,
+                          hsub298, cp_gas_298, cp_solid_298, error_msg, warning_msg]
+        result_val_list = input_val_list + pred_val_list
 
         for key, val in zip(col_name_list, result_val_list):
-            if key in clean_up_col_name_list:
+            if key in output_col_name_list:
                 if key in ['E', 'S', 'A', 'B', 'L', 'V']:
                     val = clean_up_value(val, sigfigs=4)
                 else:
