@@ -38,6 +38,3 @@ test:
 
 about:
     home: https://github.com/fhvermei/SolPropML
-extra:
-    copy_test_source_files: true
-    final: true
