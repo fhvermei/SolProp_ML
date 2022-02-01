@@ -27,6 +27,16 @@ requirements:
     - tqdm
     - coolprop
     - chemprop_solvation >=0.0.3
+
+test:
+  imports:
+    - solvation_predictor
+    - solvation_predictor.data
+    - solvation_predictor.features
+    - solvation_predictor.models
+    - solvation_predictor.solubility
+    - solvation_predictor.train
+
 about:
     home: https://github.com/fhvermei/SolPropML
 extra:
