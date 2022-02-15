@@ -1,18 +1,17 @@
 package:
   name: solprop_ml
-  version: 1.0
+  version: 1.1
 
 source:
-  path: /home/fhvermei/Software/PycharmProjects/SolPropML/solprop
-  
+  path: ../
+
 build:
     noarch: python
-    number: '0'
-    string: py_0
-    
+    number: '1'
+
 requirements:
   host:
-    - python >=3.7
+    - python {{ python }}
     - setuptools
 
   run:
@@ -27,8 +26,15 @@ requirements:
     - tqdm
     - coolprop
     - chemprop_solvation >=0.0.3
+
+test:
+  imports:
+    - solvation_predictor
+    - solvation_predictor.data
+    - solvation_predictor.features
+    - solvation_predictor.models
+    - solvation_predictor.solubility
+    - solvation_predictor.train
+
 about:
     home: https://github.com/fhvermei/SolPropML
-extra:
-    copy_test_source_files: true
-    final: true
