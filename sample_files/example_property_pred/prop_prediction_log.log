@@ -1,0 +1,12 @@
+Reading dataframe
+Reading solute and solvent smiles
+Validating smiles (or converting inchis) and other input values
+Validation done, 1 inputs are not correct
+Done reading data
+Loading 10 solvation free energy models
+Loading 12 solvation enthalpy models
+Loading 30 aqueous solubility models
+Make Gsolv predictions
+Make Hsolv predictions
+Make logSaq predictions
+Make solute parameter predictions

@@ -1,0 +1,15 @@
+Reading dataframe
+Reading solute and solvent smiles
+Validating smiles (or converting inchis) and other input values
+Validation done, 11 inputs are not correct
+Reading reference solubility
+Done reading data
+Loading 10 solvation free energy models
+Loading 30 aqueous solubility models
+Make Gsolv predictions
+Make logSaq predictions
+Make Gsolv aqueous predictions
+Make Gsolv reference predictions
+Start making logS calculations
+Calculating logS at 298K from predicted aqueous solubility
+Calculating logS at 298K from reference solubility
