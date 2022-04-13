@@ -227,19 +227,19 @@ def write_results(df,
     if predictions:
         if predictions.gsolv is not None:
             df['dG_solv_298 [kcal/mol]'] = [i for i in predictions.gsolv[0]]
-            df['uncertainty_dG_solv_298 [kcal/mol]'] = [np.sqrt(i) for i in predictions.gsolv[1]]
+            df['stdev_dG_solv_298 [kcal/mol]'] = [np.sqrt(i) for i in predictions.gsolv[1]]
         if predictions.gsolv_aq is not None:
             df['dG_solv_aq_298 [kcal/mol]'] = [i for i in predictions.gsolv_aq[0]]
-            df['uncertainty_dG_solv_aq_298 [kcal/mol]'] = [np.sqrt(i) for i in predictions.gsolv_aq[1]]
+            df['stdev_dG_solv_aq_298 [kcal/mol]'] = [np.sqrt(i) for i in predictions.gsolv_aq[1]]
         if predictions.gsolv_ref is not None:
             df['dG_solv_ref_298 [kcal/mol]'] = [i for i in predictions.gsolv_ref[0]]
-            df['uncertainty_dG_solv_ref_298 [kcal/mol]'] = [np.sqrt(i) for i in predictions.gsolv_ref[1]]
+            df['stdev_dG_solv_ref_298 [kcal/mol]'] = [np.sqrt(i) for i in predictions.gsolv_ref[1]]
         if predictions.hsolv is not None:
             df['dH_solv_298 [kcal/mol]'] = [i for i in predictions.hsolv[0]]
-            df['uncertainty_dH_solv_298 [kcal/mol]'] = [np.sqrt(i) for i in predictions.hsolv[1]]
+            df['stdev_dH_solv_298 [kcal/mol]'] = [np.sqrt(i) for i in predictions.hsolv[1]]
         if predictions.saq is not None:
             df['logS_aq_298 [log10(mol/L)]'] = [i for i in predictions.saq[0]]
-            df['uncertainty_logS_aq_298 [log10(mol/L)]'] = [np.sqrt(i) for i in predictions.saq[1]]
+            df['stdev_logS_aq_298 [log10(mol/L)]'] = [np.sqrt(i) for i in predictions.saq[1]]
         if predictions.solute_parameters is not None:
             E, S, A, B, L = [], [], [], [], []
             for i in predictions.solute_parameters[0]:
@@ -256,24 +256,24 @@ def write_results(df,
 
             E_unc, S_unc, A_unc, B_unc, L_unc = [], [], [], [], []
             for i in predictions.solute_parameters[1]:
-                E_unc.append(i[0])
-                S_unc.append(i[1])
-                A_unc.append(i[2])
-                B_unc.append(i[3])
-                L_unc.append(i[4])
-            df['uncertainty_SoluParam_E'] = E_unc
-            df['uncertainty_SoluParam_S'] = S_unc
-            df['uncertainty_SoluParam_A'] = A_unc
-            df['uncertainty_SoluParam_B'] = B_unc
-            df['uncertainty_SoluParam_L'] = L_unc
+                E_unc.append(np.sqrt(i[0]))
+                S_unc.append(np.sqrt(i[1]))
+                A_unc.append(np.sqrt(i[2]))
+                B_unc.append(np.sqrt(i[3]))
+                L_unc.append(np.sqrt(i[4]))
+            df['stdev_SoluParam_E'] = E_unc
+            df['stdev_SoluParam_S'] = S_unc
+            df['stdev_SoluParam_A'] = A_unc
+            df['stdev_SoluParam_B'] = B_unc
+            df['stdev_SoluParam_L'] = L_unc
 
         if calculations is not None:
             if calculations.logs_298_from_aq is not None:
                 df['logS_298_from_aq [log10(mol/L)]'] = calculations.logs_298_from_aq
-                df['uncertainty_logS_298_from_aq [log10(mol/L)]'] = calculations.unc_logs_298_from_aq
+                df['stdev_logS_298_from_aq [log10(mol/L)]'] = calculations.unc_logs_298_from_aq
             if calculations.logs_298_from_ref is not None:
                 df['logS_298_from_ref [log10(mol/L)]'] = calculations.logs_298_from_ref
-                df['uncertainty_logS_298_from_ref [log10(mol/L)]'] = calculations.unc_logs_298_from_ref
+                df['stdev_logS_298_from_ref [log10(mol/L)]'] = calculations.unc_logs_298_from_ref
             if calculations.logs_T_with_const_hdiss_from_aq is not None:
                 df['logS_T_from_aq_with_constant_Hdiss [log10(mol/L)]'] = calculations.logs_T_with_const_hdiss_from_aq
             if calculations.logs_T_with_const_hdiss_from_ref is not None:
@@ -290,19 +290,19 @@ def write_results(df,
             if detail:
                 if calculations.logk_298 is not None:
                     df['logK_298 [log10(-)]'] = calculations.logk_298
-                    df['uncertainty_logK_298 [log10(-)]'] = calculations.unc_logk_298
+                    df['stdev_logK_298 [log10(-)]'] = calculations.unc_logk_298
                 if calculations.logk_aq_298 is not None:
                     df['logK_aq_298 [log10(-)]'] = calculations.logk_aq_298
-                    df['uncertainty_logK_aq_298 [log10(-)]'] = calculations.unc_logk_aq_298
+                    df['stdev_logK_aq_298 [log10(-)]'] = calculations.unc_logk_aq_298
                 if calculations.logs_298_from_aq is not None:
                     df['logS_298_from_aq [log10(mol/L)]'] = calculations.logs_298_from_aq
-                    df['uncertainty_logS_298_from_aq [log10(mol/L)]'] = calculations.unc_logs_298_from_aq
+                    df['stdev_logS_298_from_aq [log10(mol/L)]'] = calculations.unc_logs_298_from_aq
                 if calculations.logk_ref_298 is not None:
                     df['logK_ref_298 [log10(-)]'] = calculations.logk_ref_298
-                    df['uncertainty_logK_ref_298 [log10(-)]'] = calculations.unc_logk_ref_298
+                    df['stdev_logK_ref_298 [log10(-)]'] = calculations.unc_logk_ref_298
                 if calculations.logs_298_from_ref is not None:
                     df['logS_298_from_ref [log10(mol/L)]'] = calculations.logs_298_from_ref
-                    df['uncertainty_logS_298_from_ref [log10(mol/L)]'] = calculations.unc_logs_298_from_ref
+                    df['stdev_logS_298_from_ref [log10(mol/L)]'] = calculations.unc_logs_298_from_ref
                 if calculations.V is not None:
                     df['V_solute_parameter'] = calculations.V
                     df['adjacent diol parameter'] = calculations.I_OHadj
