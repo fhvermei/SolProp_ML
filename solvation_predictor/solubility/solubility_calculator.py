@@ -34,6 +34,9 @@ class SolubilityCalculations:
                  Cp_gas: np.array = None,
                  logger=None,
                  verbose=True):
+        '''
+        All uncertainty is reported as the standard deviation of machine learning model ensemble predictions.
+        '''
 
         self.logger = logger.info if logger is not None else print
         self.solv_crit_prop_dict = solv_crit_prop_dict
@@ -200,7 +203,7 @@ class SolubilityCalculations:
 
     def extract_predictions(self, predictions):
         pred = np.array(predictions[0]) if predictions else None
-        unc = np.array(predictions[1]) if predictions else None
+        unc = np.sqrt(np.array(predictions[1])) if predictions else None  # uncertainty reported as standard deviation
         return pred, unc
 
     def calculate_logs_t(self, hsolv_298=None, hsubl_298=None, logs_298=None, temperatures=None):
@@ -214,17 +217,17 @@ class SolubilityCalculations:
 
     def calculate_logs_298(self, logk=None, logk_ref=None, logs_ref=None, uncertainty: bool = False):
         if uncertainty:
-            return np.abs(logk) + np.abs(logk_ref) + np.abs(logs_ref)
+            return np.sqrt(np.square(logk) + np.square(logk_ref) + np.square(logs_ref))
         else:
             return logs_ref + logk - logk_ref
 
     def calculate_logk(self, gsolv=None, uncertainty: bool = False):
         if uncertainty:
-            return np.sqrt(gsolv) * 4.184 * 1000. / 8.314 / 298. / 2.303
+            return np.abs(gsolv * 4.184 * 1000. / 8.314 / 298. / 2.303)
         else:
             return -gsolv * 4.184 * 1000. / 8.314 / 298. / 2.303  # in log10
 
-    def get_solute_parameters(self, predictions):
+    def get_solute_parameters(self, predictions, uncertainty: bool = False):
         E, S, A, B, L = [], [], [], [], []
         for i in predictions:
             E.append(i[0])
@@ -232,7 +235,11 @@ class SolubilityCalculations:
             A.append(i[2])
             B.append(i[3])
             L.append(i[4])
-        return np.array(E), np.array(S), np.array(A), np.array(B), np.array(L)
+        if uncertainty:
+            return np.sqrt(np.array(E)), np.sqrt(np.array(S)), np.sqrt(np.array(A)), \
+                   np.sqrt(np.array(B)), np.sqrt(np.array(L))
+        else:
+            return np.array(E), np.array(S), np.array(A), np.array(B), np.array(L)
 
     def get_Cp_solid(self, E, S, A, B, V, I_OHnonadj=False, in_cal=True):
         '''
