@@ -116,18 +116,16 @@ def predict(model: nn.Module,
         preds.extend(pred)
 
     if num_iters == 0:
-        pred = []
-
+        preds = []
     for i in range(0, len(preds)):
         data.get_data()[i].scaled_predictions = preds[i]
 
     if scaler is not None:
         preds = scaler.inverse_transform(preds)
+
     for i in range(0, len(preds)):
         data.get_data()[i].predictions = preds[i]
-
     preds = preds.tolist()
-
     return preds
 
 

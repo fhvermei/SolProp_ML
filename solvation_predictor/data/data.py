@@ -21,7 +21,6 @@ class DataPoint:
     After operations it also contains a list of scaled targets, scaled features, scaled predictions and predictions"""
 
     def __init__(self, smiles, targets, features, inp: InputArguments):
-
         if "InChI" in smiles[0]:
             self.mol = [Chem.MolFromInchi(i) if i else None for i in smiles]
             self.inchi = [Chem.MolToInchi(i, options='/fixedH') for i in self.mol]
@@ -200,7 +199,8 @@ def read_data(inp: InputArguments, encoding='utf-8', file=None):
         file = inp.input_file
 
     f = open(file, 'r', encoding=encoding)
-    reader = csv.reader(f)
+    reader = csv.reader(f, delimiter=';')
+
     header = next(reader)
     all_data = list()
     species_count = 0

@@ -117,7 +117,6 @@ def run_training(inp: InputArguments, all_data: DatapointList, logger: Logger):
         else:
             raise ValueError("scaler not supported")
 
-
         for model_i in trange(inp.num_models):
             path = inp.output_dir + "/fold_" + str(fold) + "/model" + str(model_i)
             if path != '':
@@ -489,10 +488,9 @@ def create_logger(name: str, save_dir: str = None) -> logging.Logger:
 
 
 def process_results(path: str, input: InputArguments, model: nn.Module, data: [], scaler: Scaler, loss: []):
-
-    train_preds, train_ale_unc = predict(model=model, data=data[0], scaler=scaler)
-    val_preds, val_ale_unc = predict(model=model, data=data[1], scaler=scaler)
-    test_preds, test_ale_unc = predict(model=model, data=data[2], scaler=scaler)
+    train_preds = predict(model=model, data=data[0], scaler=scaler)
+    val_preds = predict(model=model, data=data[1], scaler=scaler)
+    test_preds = predict(model=model, data=data[2], scaler=scaler)
 
     fig, ax = plt.subplots()
     train_data = DatapointList(data[0].get_data()[0:len(train_preds)])

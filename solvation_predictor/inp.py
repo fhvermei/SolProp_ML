@@ -6,13 +6,13 @@ class InputArguments:
         self.optimization = False
 
         # reading and processing data
-        self.dir = "/home/fhvermei/Software/PycharmProjects/SolvationPredictor/ml_solvation/"
+        self.dir = "/Users/u0161682/Documents/GitHub/SolProp_ML/data/SolProp_v1.2/"
         # self.input_file = self.dir + "databases/logP/active_learning/theory_reduced.csv"
-        self.input_file = self.dir + "databases/multitask_logS/test.csv"
+        self.input_file = self.dir + "Data/CombiSolv-QM-mini.csv"
         self.split_ratio = (0.8, 0.1, 0.1)
         self.seed = 0
-        self.model_path = self.dir + "examples/active_learning_cosmo/trained/np_episcaled/run20/"
-        self.output_dir = self.dir + "examples/multitask_logS/test"
+        self.model_path = "/Users/u0161682/Documents/GitHub/SolProp_ML/data/SolProp_v1.2/Model_predictions/fold_0/model0/model.pt"
+        self.output_dir = self.dir + "Model_predictions"
         self.make_plots = True
         self.scale = "standard"  # standard or minmax
         self.scale_features = False
