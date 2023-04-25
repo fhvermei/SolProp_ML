@@ -22,20 +22,28 @@ class InputArguments:
         self.save_memory = False
 
         # for featurization
-        self.property = 'solvation'  # "solvation"  # alternatives are solvation, Tm and logS, None and nbv_f1, nbv_f2
+        self.property = "solvation"  # "solvation"  # alternatives are solvation, Tm and logS, None and nbv_f1, nbv_f2
         self.add_hydrogens_to_solvent = False  # adds hydrogens to first column smiles
-        self.mix = False  # features are fractions of the different molecules in the same order
+        self.mix = (
+            False  # features are fractions of the different molecules in the same order
+        )
 
         # for active learning
         self.uncertainty = False  # calculate and output aleotoric uncertainties
         self.ensemble_variance = False  # calculate and output ensemble variance, epi
 
-        self.active_learning_batch_size = 'adaptpercent-10'  # number or adaptpercent-n for n% of training set
+        self.active_learning_batch_size = (
+            "adaptpercent-10"  # number or adaptpercent-n for n% of training set
+        )
         self.active_learning_iterations = 100
         self.data_selection = "epistemic"  # how to select data, options are: epistemic, total and random, epi_mol, epi_scaled (for epi unc on scaled predictions)
         self.restart_al = False
 
-        self.AL_spit_ratio = (0.3, 0.4, 0.3)  # split between initial train data, experimental data and test set
+        self.AL_spit_ratio = (
+            0.3,
+            0.4,
+            0.3,
+        )  # split between initial train data, experimental data and test set
 
         # for training
         self.num_folds = 1
@@ -44,10 +52,15 @@ class InputArguments:
         self.batch_size = 50
         self.loss_metric = "rmse"
         self.pretraining = False
-        self.pretraining_path = [self.dir + f'examples/trained_models/model_Gsolv{i}0.pt' for i in range(0,10)]
+        self.pretraining_path = [
+            self.dir + f"examples/trained_models/model_Gsolv{i}0.pt"
+            for i in range(0, 10)
+        ]
         self.pretraining_fix = "none"  # mpn or ffn or none or onlylast or mpn1 or onlylast1 if you have only one molecule
         self.learning_rates = (0.001, 0.0001, 0.001)  # initial, final, max
-        self.warm_up_epochs = 2.0  # you need min 1 with adam optimizer and Noam learning rate scheduler
+        self.warm_up_epochs = (
+            2.0  # you need min 1 with adam optimizer and Noam learning rate scheduler
+        )
         self.lr_scheduler = "Noam"  # Noam or Step or Exponential
         # in case of step
         self.step_size = 10
@@ -65,10 +78,12 @@ class InputArguments:
         self.mpn_activation = "LeakyReLU"
         self.mpn_bias = False
         self.shared = False
-        self.morgan_fingerprint = "None"  # None, only_solvent or All #if you want morgan fingerprints
+        self.morgan_fingerprint = (
+            "None"  # None, only_solvent or All #if you want morgan fingerprints
+        )
         self.morgan_bits = 16
         self.morgan_radius = 2
-        self.aggregation = 'mean'
+        self.aggregation = "mean"
         # make sure your solvent is th
         # e first in the input file
         # self.dummy_atom_for_single_atoms = True
@@ -79,7 +94,9 @@ class InputArguments:
         self.att_dropout = 0.0
         self.att_bias = False
         self.att_activation = "ReLU"
-        self.att_normalize = "sigmoid"  # sigmoid or softmax or logsigmoid of logsoftmax or None
+        self.att_normalize = (
+            "sigmoid"  # sigmoid or softmax or logsigmoid of logsoftmax or None
+        )
         self.att_first_normalize = False
 
         # for ffn

@@ -66,7 +66,9 @@ def get_h_bond_acceptor(atom: Chem.rdchem.Atom):
 
 def get_is_h_bond_donor(atom: Chem.rdchem.Atom):
     """returns if an atom is a h bond donor, 1 for N and O that have 1 or more H atoms"""
-    if (atom.GetSymbol() == "O" and atom.GetTotalNumHs() > 0) or (atom.GetSymbol() == "N" and atom.GetTotalNumHs() > 0):
+    if (atom.GetSymbol() == "O" and atom.GetTotalNumHs() > 0) or (
+        atom.GetSymbol() == "N" and atom.GetTotalNumHs() > 0
+    ):
         return 1
     else:
         return 0
@@ -95,7 +97,7 @@ def get_in_ring_size(atom: Chem.rdchem.Atom):
     if atom.IsInRing():
         for i in range(1, 8):
             if atom.IsInRingSize(i):
-                n=i
+                n = i
     else:
         n = 0
     return n
@@ -103,13 +105,13 @@ def get_in_ring_size(atom: Chem.rdchem.Atom):
 
 def get_num_lone_pairs(atom: Chem.rdchem.Atom):
     symbol = atom.GetSymbol()
-    if symbol == 'C' or symbol == 'H':
+    if symbol == "C" or symbol == "H":
         return 0 - atom.GetFormalCharge()
-    elif symbol == 'S' or symbol == 'O':
+    elif symbol == "S" or symbol == "O":
         return 2 - atom.GetFormalCharge()
-    elif symbol == 'N' or symbol == 'P':
+    elif symbol == "N" or symbol == "P":
         return 1 - atom.GetFormalCharge()
-    elif symbol == 'F' or symbol == 'Cl' or symbol == 'Br' or symbol == 'I':
+    elif symbol == "F" or symbol == "Cl" or symbol == "Br" or symbol == "I":
         return 3 - atom.GetFormalCharge()
     else:
         return 0
@@ -169,7 +171,11 @@ def get_atomic_number(atom: Chem.rdchem.Atom):
 
 
 def get_if_bond_is_rotable(bond: Chem.rdchem.Bond):
-    return 1 if (bond.GetBondType() == Chem.rdchem.BondType.SINGLE and not bond.IsInRing()) else 0
+    return (
+        1
+        if (bond.GetBondType() == Chem.rdchem.BondType.SINGLE and not bond.IsInRing())
+        else 0
+    )
 
 
 def get_only_H(mol: Chem.rdchem.Mol):
@@ -197,5 +203,3 @@ def get_num_aromatic_rings(mol: Chem.rdchem.Mol):
 
 def get_molar_mass(mol: Chem.rdchem.Mol):
     return Descriptors.MolWt(mol)
-
-

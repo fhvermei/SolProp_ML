@@ -11,11 +11,9 @@ from solvation_predictor.data.scaler import Scaler
 from solvation_predictor.data.data import DatapointList
 
 
-def evaluate(model: nn.Module,
-             data: DatapointList,
-             metric_func: str,
-             scaler: Scaler = None
-             ):
+def evaluate(
+    model: nn.Module, data: DatapointList, metric_func: str, scaler: Scaler = None
+):
     """
     Evaluates an ensemble of models on a dataset.
 
@@ -29,27 +27,20 @@ def evaluate(model: nn.Module,
     :param logger: Logger.
     :return: A list with the score for each task based on `metric_func`.
     """
-    preds = predict(
-        model=model,
-        data=data,
-        scaler=scaler
-    )
+    preds = predict(model=model, data=data, scaler=scaler)
 
     targets = [d.targets for d in data.get_data()]
 
     results = evaluate_predictions(
-        preds=preds,
-        targets=targets,
-        metric_func=metric_func
+        preds=preds, targets=targets, metric_func=metric_func
     )
 
     return results
 
 
-def evaluate_predictions(preds: List[List[float]],
-                         targets: List[List[float]],
-                         metric_func: str
-                         ) -> List[float]:
+def evaluate_predictions(
+    preds: List[List[float]], targets: List[List[float]], metric_func: str
+) -> List[float]:
     """
     Evaluates predictions using a metric function and filtering out invalid targets.
 
@@ -63,7 +54,7 @@ def evaluate_predictions(preds: List[List[float]],
     """
     num_tasks = len(targets[0])
     if len(preds) == 0:
-        return [float('nan')] * num_tasks
+        return [float("nan")] * num_tasks
 
     # Filter out empty targets
     # valid_preds and valid_targets have shape (num_tasks, data_size)
@@ -86,9 +77,7 @@ def evaluate_predictions(preds: List[List[float]],
     return results
 
 
-def predict(model: nn.Module,
-            data: DatapointList,
-            scaler: Scaler = None):
+def predict(model: nn.Module, data: DatapointList, scaler: Scaler = None):
     """
     Makes predictions on a dataset using an ensemble of models.
 
@@ -109,7 +98,7 @@ def predict(model: nn.Module,
     for i in trange(0, num_iters, iter_size):
         if (i + iter_size) > len(data.get_data()):
             break
-        batch = DatapointList(data.get_data()[i:i+batch_size])
+        batch = DatapointList(data.get_data()[i : i + batch_size])
         with torch.no_grad():
             pred = model(batch)
         pred = pred.data.cpu().numpy().tolist()
@@ -149,4 +138,3 @@ def mse(targets: List[float], preds: List[float]) -> float:
     :return: The computed mse.
     """
     return mean_squared_error(targets, preds)
-

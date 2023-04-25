@@ -5,6 +5,7 @@ import torch
 
 class MolEncoder:
     """Computes the featurization from a molecule considering all atom and bond features, adapted from chemprop"""
+
     def __init__(self, mol: Chem.rdchem.Mol, property: str = "solvation", dummy=False):
         smiles = Chem.MolToSmiles(mol)
         self.mol = mol
@@ -14,7 +15,9 @@ class MolEncoder:
         f_bonds = []  # mapping from bond index to concat(in_atom, bond) features
         f_mol = []  # mol features
         a2b = []  # mapping from atom index to incoming bond indices
-        b2a = []  # mapping from bond index to the index of the atom the bond is coming from
+        b2a = (
+            []
+        )  # mapping from bond index to the index of the atom the bond is coming from
         b2revb = []  # mapping from bond index to the index of the reverse bond
         self.fa_size = 0
         self.fb_size = 0
@@ -26,7 +29,7 @@ class MolEncoder:
         self.n_atoms = self.mol.GetNumAtoms()
         # Get atom features
         for atom in self.mol.GetAtoms():
-            #if atom.GetSymbol() is not "H":
+            # if atom.GetSymbol() is not "H":
             af = AtomFeatureVector(atom, property=self.property)
             f_atoms.append(af.construct_vector())
             self.fa_size = af.get_atom_feature_dim()
@@ -80,9 +83,3 @@ class MolEncoder:
 
     def get_current_a_hiddens(self):
         return self.curr_a_hidden
-
-
-
-
-
-

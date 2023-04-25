@@ -20,29 +20,65 @@ class Model(nn.Module):
         self.property = inp.property
 
         if not self.shared:
-            #self.shared = False
-            logger(f"Make {inp.num_mols} MPN models (no shared weight) with depth {inp.depth}, "
-                   f"hidden size {inp.mpn_hidden}, dropout {inp.mpn_dropout}, "
-                   f"activation function {inp.mpn_activation} and bias {inp.mpn_bias}")
-            #only works for 2 molecules
-            self.mpn_1 = MPN(depth=inp.depth, hidden_size=inp.mpn_hidden, dropout=inp.mpn_dropout,
-                             activation=inp.mpn_activation, bias=inp.mpn_bias, cuda=inp.cuda, atomMessage=False,
-                             property=self.property, aggregation=inp.aggregation)
-            self.mpn_2 = MPN(depth=inp.depth, hidden_size=inp.mpn_hidden, dropout=inp.mpn_dropout,
-                             activation=inp.mpn_activation, bias=inp.mpn_bias, cuda=inp.cuda, atomMessage=False,
-                             property=self.property, aggregation=inp.aggregation)
+            # self.shared = False
+            logger(
+                f"Make {inp.num_mols} MPN models (no shared weight) with depth {inp.depth}, "
+                f"hidden size {inp.mpn_hidden}, dropout {inp.mpn_dropout}, "
+                f"activation function {inp.mpn_activation} and bias {inp.mpn_bias}"
+            )
+            # only works for 2 molecules
+            self.mpn_1 = MPN(
+                depth=inp.depth,
+                hidden_size=inp.mpn_hidden,
+                dropout=inp.mpn_dropout,
+                activation=inp.mpn_activation,
+                bias=inp.mpn_bias,
+                cuda=inp.cuda,
+                atomMessage=False,
+                property=self.property,
+                aggregation=inp.aggregation,
+            )
+            self.mpn_2 = MPN(
+                depth=inp.depth,
+                hidden_size=inp.mpn_hidden,
+                dropout=inp.mpn_dropout,
+                activation=inp.mpn_activation,
+                bias=inp.mpn_bias,
+                cuda=inp.cuda,
+                atomMessage=False,
+                property=self.property,
+                aggregation=inp.aggregation,
+            )
         else:
-            logger(f"Make MPN model with depth {inp.depth}, hidden size {inp.mpn_hidden}, dropout {inp.mpn_dropout}, "
-                   f"activation function {inp.mpn_activation} and bias {inp.mpn_bias}")
-            self.mpn = MPN(depth=inp.depth, hidden_size=inp.mpn_hidden, dropout=inp.mpn_dropout,
-                           activation=inp.mpn_activation, bias=inp.mpn_bias, cuda=inp.cuda, atomMessage=False,
-                           property=self.property, aggregation=inp.aggregation)
+            logger(
+                f"Make MPN model with depth {inp.depth}, hidden size {inp.mpn_hidden}, dropout {inp.mpn_dropout}, "
+                f"activation function {inp.mpn_activation} and bias {inp.mpn_bias}"
+            )
+            self.mpn = MPN(
+                depth=inp.depth,
+                hidden_size=inp.mpn_hidden,
+                dropout=inp.mpn_dropout,
+                activation=inp.mpn_activation,
+                bias=inp.mpn_bias,
+                cuda=inp.cuda,
+                atomMessage=False,
+                property=self.property,
+                aggregation=inp.aggregation,
+            )
 
-        logger(f"Make FFN model with number of layers {inp.ffn_num_layers}, hidden size {inp.ffn_hidden}, "
-               f"dropout {inp.ffn_dropout}, activation function {inp.ffn_activation} and bias {inp.ffn_bias}")
-        self.ffn = FFN((inp.mpn_hidden + inp.f_mol_size) * inp.num_mols + inp.num_features, inp.num_targets,
-                       ffn_hidden_size=inp.ffn_hidden, num_layers=inp.ffn_num_layers, dropout=inp.ffn_dropout,
-                       activation=inp.ffn_activation, bias=inp.ffn_bias)
+        logger(
+            f"Make FFN model with number of layers {inp.ffn_num_layers}, hidden size {inp.ffn_hidden}, "
+            f"dropout {inp.ffn_dropout}, activation function {inp.ffn_activation} and bias {inp.ffn_bias}"
+        )
+        self.ffn = FFN(
+            (inp.mpn_hidden + inp.f_mol_size) * inp.num_mols + inp.num_features,
+            inp.num_targets,
+            ffn_hidden_size=inp.ffn_hidden,
+            num_layers=inp.ffn_num_layers,
+            dropout=inp.ffn_dropout,
+            activation=inp.ffn_activation,
+            bias=inp.ffn_bias,
+        )
 
     def forward(self, data):
         datapoints = data.get_data()
@@ -102,4 +138,3 @@ class Model(nn.Module):
             datapoints[i].scaled_predictions = output[i]
 
         return output
-

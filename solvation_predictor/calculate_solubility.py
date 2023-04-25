@@ -1,6 +1,5 @@
 import logging
 import os
-
 import numpy as np
 import pandas as pd
 
@@ -11,10 +10,18 @@ from solvation_predictor.solubility.solubility_predictions import SolubilityPred
 
 
 def create_logger(save_dir=None):
+    """
+    Function that creates a logger.
+
+    :param save_dir: Directory where the logger is saved, if None a default options is used.
+    """
     if save_dir is not None:
         path = save_dir
     else:
-        path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'log_solubility_predictions.log')
+        path = os.path.join(
+            os.path.dirname(os.path.realpath(__file__)),
+            "log_solubility_predictions.log",
+        )
     logger = logging.getLogger(path)
     logger.setLevel(logging.INFO)
     logger.propagate = False
@@ -25,67 +32,76 @@ def create_logger(save_dir=None):
     return logger
 
 
-def convert_arrays_to_df(solvent_smiles,
-                         solute_smiles,
-                         temperatures=None,
-                         reference_solubility=None,
-                         reference_solvent=None):
+def convert_arrays_to_df(
+    solvent_smiles,
+    solute_smiles,
+    temperatures=None,
+    reference_solubility=None,
+    reference_solvent=None,
+):
     """
-    Function to convert arrays (e.g. for reading from website) to a pandas dataframe that is
-    used further in the software. Note that all input arrays need the same size.
+        Function to convert arrays (e.g. for reading from website) to a pandas dataframe that is
+        used further in the software. Note that all input arrays need the same size.
+
         :param solvent_smiles: array of solvent smiles
         :param solute_smiles: array of solute smiles
         :param temperatures: array of temperatures
         :param reference_solubility: array of the reference solubility in another solvent
         :param reference_solvent: array of the solvent smiles associated with the reference solubility
-
-        :returns: pandas dataframe with all data
+    `   :returns: pandas dataframe with all data
     """
     df = pd.DataFrame()
-    df['solvent'] = solvent_smiles
-    df['solute'] = solute_smiles
+    df["solvent"] = solvent_smiles
+    df["solute"] = solute_smiles
     if temperatures is not None:
-        df['temperature'] = temperatures
+        df["temperature"] = temperatures
     if reference_solubility is not None:
-        df['reference_solubility'] = reference_solubility
-        df['reference_solvent'] = reference_solvent
+        df["reference_solubility"] = reference_solubility
+        df["reference_solvent"] = reference_solvent
     return df
 
 
-def load_models(reduced_number: bool = False,
-                load_g: bool = True,
-                load_h: bool = True,
-                load_saq: bool = True,
-                load_solute: bool = True,
-                logger=None) -> SolubilityModels:
+def load_models(
+    reduced_number: bool = False,
+    load_g: bool = True,
+    load_h: bool = True,
+    load_saq: bool = True,
+    load_solute: bool = True,
+    logger=None,
+) -> SolubilityModels:
     """
     Function to load the ML models for solvation free energy, enthalpy, aqueous solubility, and solute parameters.
-        :param reduced_number: use a reduced number of models for faster but less accurate prediction (does not work for solute_parameters)
-        :param load_g: load the model for solvation free energies
-        :param load_h: load the model for solvation enthalpies
-        :param load_saq: load the model for aqueous solubility
-        :param load_solute: load the model for Abraham solute parameters
+
+    :param reduced_number: use a reduced number of models for faster but less accurate prediction (does not work for solute_parameters)
+    :param load_g: load the model for solvation free energies
+    :param load_h: load the model for solvation enthalpies
+    :param load_saq: load the model for aqueous solubility
+    :param load_solute: load the model for Abraham solute parameters
     """
-    models = SolubilityModels(reduced_number=reduced_number,
-                                    load_g=load_g,
-                                    load_h=load_h,
-                                    load_saq=load_saq,
-                                    load_solute=load_solute,
-                                    logger=logger)
+    models = SolubilityModels(
+        reduced_number=reduced_number,
+        load_g=load_g,
+        load_h=load_h,
+        load_saq=load_saq,
+        load_solute=load_solute,
+        logger=logger,
+    )
     return models
 
 
-def predict_property(csv_path: str = None,
-                     df: pd.DataFrame = None,
-                     models: SolubilityModels = None,
-                     gsolv: bool = False,
-                     hsolv: bool = False,
-                     saq: bool = False,
-                     solute_parameters: bool = False,
-                     reduced_number: bool = False,
-                     validate_data_list: list = [],
-                     export_csv: str = False,
-                     logger=None) -> SolubilityPredictions:
+def predict_property(
+    csv_path: str = None,
+    df: pd.DataFrame = None,
+    models: SolubilityModels = None,
+    gsolv: bool = False,
+    hsolv: bool = False,
+    saq: bool = False,
+    solute_parameters: bool = False,
+    reduced_number: bool = False,
+    validate_data_list: list = [],
+    export_csv: str = False,
+    logger=None,
+) -> SolubilityPredictions:
     """
     Function to only predict some properties. The desired ones can be specified with arguments.
     Data is read from a csv file or a pandas dataframe.
@@ -111,30 +127,39 @@ def predict_property(csv_path: str = None,
         df = data.df
         df_wrong_input = data.df_wrong_input
     if models is None:
-        models = SolubilityModels(reduced_number=reduced_number, load_g=gsolv, load_h=hsolv, load_saq=saq,
-                                  load_solute=solute_parameters, logger=logger)
-    predictions = SolubilityPredictions(data, models, predict_solute_parameters=solute_parameters, logger=logger)
+        models = SolubilityModels(
+            reduced_number=reduced_number,
+            load_g=gsolv,
+            load_h=hsolv,
+            load_saq=saq,
+            load_solute=solute_parameters,
+            logger=logger,
+        )
+    predictions = SolubilityPredictions(
+        data, models, predict_solute_parameters=solute_parameters, logger=logger
+    )
 
     if export_csv is not None:
-        df = write_results(df,
-                           export_csv,
-                           df_wrong_input=df_wrong_input,
-                           predictions=predictions)
+        df = write_results(
+            df, export_csv, df_wrong_input=df_wrong_input, predictions=predictions
+        )
 
     return predictions
 
 
-def calculate_solubility(path: str = None,
-                        df: pd.DataFrame = None,
-                        models: SolubilityModels = None,
-                        calculate_aqueous: bool = True,
-                        calculate_Hdiss_T_dep: bool = True,
-                        validate_data_list: list = [],
-                        reduced_number: bool = False,
-                        export_csv: str = None,
-                        export_detailed_csv: bool = False,
-                        solv_crit_prop_dict: dict = None,
-                        logger = None) -> SolubilityCalculations:
+def calculate_solubility(
+    path: str = None,
+    df: pd.DataFrame = None,
+    models: SolubilityModels = None,
+    calculate_aqueous: bool = True,
+    calculate_Hdiss_T_dep: bool = True,
+    validate_data_list: list = [],
+    reduced_number: bool = False,
+    export_csv: str = None,
+    export_detailed_csv: bool = False,
+    solv_crit_prop_dict: dict = None,
+    logger=None,
+) -> SolubilityCalculations:
     """
     Predict relevant properties and make calculations.
     Data is read from a csv file or a pandas dataframe.
@@ -170,49 +195,64 @@ def calculate_solubility(path: str = None,
         df = data.df
         df_wrong_input = data.df_wrong_input
 
-    predict_reference_solvents = data.reference_solvents is not None and not len([i for i in data.reference_solvents if i]) == 0
+    predict_reference_solvents = (
+        data.reference_solvents is not None
+        and not len([i for i in data.reference_solvents if i]) == 0
+    )
     predict_aqueous = calculate_aqueous or not predict_reference_solvents
-    predict_t_dep = data.temperatures is not None and (np.min(data.temperatures) < 297. or np.max(data.temperatures) > 299.)
+    predict_t_dep = data.temperatures is not None and (
+        np.min(data.temperatures) < 297.0 or np.max(data.temperatures) > 299.0
+    )
     calculate_t_dep_with_t_dep_hdiss = predict_t_dep and calculate_Hdiss_T_dep
 
     if models is None:
-        models = SolubilityModels(reduced_number=reduced_number,
-                                  load_g=True,
-                                  load_h=predict_t_dep,
-                                  load_saq=predict_aqueous,
-                                  load_solute=predict_t_dep,
-                                  logger=logger)
+        models = SolubilityModels(
+            reduced_number=reduced_number,
+            load_g=True,
+            load_h=predict_t_dep,
+            load_saq=predict_aqueous,
+            load_solute=predict_t_dep,
+            logger=logger,
+        )
 
-    predictions = SolubilityPredictions(data,
-                                        models,
-                                        predict_aqueous=predict_aqueous,
-                                        predict_reference_solvents=predict_reference_solvents,
-                                        predict_t_dep=predict_t_dep,
-                                        logger=logger)
+    predictions = SolubilityPredictions(
+        data,
+        models,
+        predict_aqueous=predict_aqueous,
+        predict_reference_solvents=predict_reference_solvents,
+        predict_t_dep=predict_t_dep,
+        logger=logger,
+    )
 
-    calculations = SolubilityCalculations(predictions,
-                                          calculate_aqueous=predict_aqueous,
-                                          calculate_reference_solvents=predict_reference_solvents,
-                                          calculate_t_dep=predict_t_dep,
-                                          calculate_t_dep_with_t_dep_hdiss=calculate_t_dep_with_t_dep_hdiss,
-                                          solv_crit_prop_dict=solv_crit_prop_dict,
-                                          logger=logger)
+    calculations = SolubilityCalculations(
+        predictions,
+        calculate_aqueous=predict_aqueous,
+        calculate_reference_solvents=predict_reference_solvents,
+        calculate_t_dep=predict_t_dep,
+        calculate_t_dep_with_t_dep_hdiss=calculate_t_dep_with_t_dep_hdiss,
+        solv_crit_prop_dict=solv_crit_prop_dict,
+        logger=logger,
+    )
     if export_csv is not None:
-        df = write_results(df,
-                           export_csv,
-                           df_wrong_input=df_wrong_input,
-                           predictions=predictions,
-                           calculations=calculations,
-                           detail=export_detailed_csv)
+        df = write_results(
+            df,
+            export_csv,
+            df_wrong_input=df_wrong_input,
+            predictions=predictions,
+            calculations=calculations,
+            detail=export_detailed_csv,
+        )
     return calculations
 
 
-def write_results(df,
-                  export_path=None,
-                  df_wrong_input=None,
-                  predictions:SolubilityPredictions = None,
-                  calculations:SolubilityCalculations = None,
-                  detail=False):
+def write_results(
+    df,
+    export_path=None,
+    df_wrong_input=None,
+    predictions: SolubilityPredictions = None,
+    calculations: SolubilityCalculations = None,
+    detail=False,
+):
     """
     Function to write the predictions and calculations to a pandas dataframe and export to csv
         :param df: initial pandas dataframe with validated input data
@@ -226,20 +266,30 @@ def write_results(df,
     """
     if predictions:
         if predictions.gsolv is not None:
-            df['dG_solv_298 [kcal/mol]'] = [i for i in predictions.gsolv[0]]
-            df['stdev_dG_solv_298 [kcal/mol]'] = [np.sqrt(i) for i in predictions.gsolv[1]]
+            df["dG_solv_298 [kcal/mol]"] = [i for i in predictions.gsolv[0]]
+            df["stdev_dG_solv_298 [kcal/mol]"] = [
+                np.sqrt(i) for i in predictions.gsolv[1]
+            ]
         if predictions.gsolv_aq is not None:
-            df['dG_solv_aq_298 [kcal/mol]'] = [i for i in predictions.gsolv_aq[0]]
-            df['stdev_dG_solv_aq_298 [kcal/mol]'] = [np.sqrt(i) for i in predictions.gsolv_aq[1]]
+            df["dG_solv_aq_298 [kcal/mol]"] = [i for i in predictions.gsolv_aq[0]]
+            df["stdev_dG_solv_aq_298 [kcal/mol]"] = [
+                np.sqrt(i) for i in predictions.gsolv_aq[1]
+            ]
         if predictions.gsolv_ref is not None:
-            df['dG_solv_ref_298 [kcal/mol]'] = [i for i in predictions.gsolv_ref[0]]
-            df['stdev_dG_solv_ref_298 [kcal/mol]'] = [np.sqrt(i) for i in predictions.gsolv_ref[1]]
+            df["dG_solv_ref_298 [kcal/mol]"] = [i for i in predictions.gsolv_ref[0]]
+            df["stdev_dG_solv_ref_298 [kcal/mol]"] = [
+                np.sqrt(i) for i in predictions.gsolv_ref[1]
+            ]
         if predictions.hsolv is not None:
-            df['dH_solv_298 [kcal/mol]'] = [i for i in predictions.hsolv[0]]
-            df['stdev_dH_solv_298 [kcal/mol]'] = [np.sqrt(i) for i in predictions.hsolv[1]]
+            df["dH_solv_298 [kcal/mol]"] = [i for i in predictions.hsolv[0]]
+            df["stdev_dH_solv_298 [kcal/mol]"] = [
+                np.sqrt(i) for i in predictions.hsolv[1]
+            ]
         if predictions.saq is not None:
-            df['logS_aq_298 [log10(mol/L)]'] = [i for i in predictions.saq[0]]
-            df['stdev_logS_aq_298 [log10(mol/L)]'] = [np.sqrt(i) for i in predictions.saq[1]]
+            df["logS_aq_298 [log10(mol/L)]"] = [i for i in predictions.saq[0]]
+            df["stdev_logS_aq_298 [log10(mol/L)]"] = [
+                np.sqrt(i) for i in predictions.saq[1]
+            ]
         if predictions.solute_parameters is not None:
             E, S, A, B, L = [], [], [], [], []
             for i in predictions.solute_parameters[0]:
@@ -248,11 +298,11 @@ def write_results(df,
                 A.append(i[2])
                 B.append(i[3])
                 L.append(i[4])
-            df['SoluParam_E'] = E
-            df['SoluParam_S'] = S
-            df['SoluParam_A'] = A
-            df['SoluParam_B'] = B
-            df['SoluParam_L'] = L
+            df["SoluParam_E"] = E
+            df["SoluParam_S"] = S
+            df["SoluParam_A"] = A
+            df["SoluParam_B"] = B
+            df["SoluParam_L"] = L
 
             E_unc, S_unc, A_unc, B_unc, L_unc = [], [], [], [], []
             for i in predictions.solute_parameters[1]:
@@ -261,61 +311,85 @@ def write_results(df,
                 A_unc.append(np.sqrt(i[2]))
                 B_unc.append(np.sqrt(i[3]))
                 L_unc.append(np.sqrt(i[4]))
-            df['stdev_SoluParam_E'] = E_unc
-            df['stdev_SoluParam_S'] = S_unc
-            df['stdev_SoluParam_A'] = A_unc
-            df['stdev_SoluParam_B'] = B_unc
-            df['stdev_SoluParam_L'] = L_unc
+            df["stdev_SoluParam_E"] = E_unc
+            df["stdev_SoluParam_S"] = S_unc
+            df["stdev_SoluParam_A"] = A_unc
+            df["stdev_SoluParam_B"] = B_unc
+            df["stdev_SoluParam_L"] = L_unc
 
         if calculations is not None:
             if calculations.logs_298_from_aq is not None:
-                df['logS_298_from_aq [log10(mol/L)]'] = calculations.logs_298_from_aq
-                df['stdev_logS_298_from_aq [log10(mol/L)]'] = calculations.unc_logs_298_from_aq
+                df["logS_298_from_aq [log10(mol/L)]"] = calculations.logs_298_from_aq
+                df[
+                    "stdev_logS_298_from_aq [log10(mol/L)]"
+                ] = calculations.unc_logs_298_from_aq
             if calculations.logs_298_from_ref is not None:
-                df['logS_298_from_ref [log10(mol/L)]'] = calculations.logs_298_from_ref
-                df['stdev_logS_298_from_ref [log10(mol/L)]'] = calculations.unc_logs_298_from_ref
+                df["logS_298_from_ref [log10(mol/L)]"] = calculations.logs_298_from_ref
+                df[
+                    "stdev_logS_298_from_ref [log10(mol/L)]"
+                ] = calculations.unc_logs_298_from_ref
             if calculations.logs_T_with_const_hdiss_from_aq is not None:
-                df['logS_T_from_aq_with_constant_Hdiss [log10(mol/L)]'] = calculations.logs_T_with_const_hdiss_from_aq
+                df[
+                    "logS_T_from_aq_with_constant_Hdiss [log10(mol/L)]"
+                ] = calculations.logs_T_with_const_hdiss_from_aq
             if calculations.logs_T_with_const_hdiss_from_ref is not None:
-                df['logS_T_from_ref_with_constant_Hdiss [log10(mol/L)]'] = calculations.logs_T_with_const_hdiss_from_ref
+                df[
+                    "logS_T_from_ref_with_constant_Hdiss [log10(mol/L)]"
+                ] = calculations.logs_T_with_const_hdiss_from_ref
             if calculations.logs_T_with_const_hdiss_warning_message is not None:
-                df['warning_message_for_logS_T_with_constant_Hdiss'] = calculations.logs_T_with_const_hdiss_warning_message
+                df[
+                    "warning_message_for_logS_T_with_constant_Hdiss"
+                ] = calculations.logs_T_with_const_hdiss_warning_message
             if calculations.logs_T_with_T_dep_hdiss_from_aq is not None:
-                df['logS_T_from_aq_with_T_dep_Hdiss [log10(mol/L)]'] = calculations.logs_T_with_T_dep_hdiss_from_aq
+                df[
+                    "logS_T_from_aq_with_T_dep_Hdiss [log10(mol/L)]"
+                ] = calculations.logs_T_with_T_dep_hdiss_from_aq
             if calculations.logs_T_with_T_dep_hdiss_from_ref is not None:
-                df['logS_T_from_ref_with_T_dep_Hdiss [log10(mol/L)]'] = calculations.logs_T_with_T_dep_hdiss_from_ref
+                df[
+                    "logS_T_from_ref_with_T_dep_Hdiss [log10(mol/L)]"
+                ] = calculations.logs_T_with_T_dep_hdiss_from_ref
             if calculations.logs_T_with_T_dep_hdiss_error_message is not None:
-                df['error_message_for_logS_T_with_T_dep_Hdiss'] = calculations.logs_T_with_T_dep_hdiss_error_message
+                df[
+                    "error_message_for_logS_T_with_T_dep_Hdiss"
+                ] = calculations.logs_T_with_T_dep_hdiss_error_message
 
             if detail:
                 if calculations.logk_298 is not None:
-                    df['logK_298 [log10(-)]'] = calculations.logk_298
-                    df['stdev_logK_298 [log10(-)]'] = calculations.unc_logk_298
+                    df["logK_298 [log10(-)]"] = calculations.logk_298
+                    df["stdev_logK_298 [log10(-)]"] = calculations.unc_logk_298
                 if calculations.logk_aq_298 is not None:
-                    df['logK_aq_298 [log10(-)]'] = calculations.logk_aq_298
-                    df['stdev_logK_aq_298 [log10(-)]'] = calculations.unc_logk_aq_298
+                    df["logK_aq_298 [log10(-)]"] = calculations.logk_aq_298
+                    df["stdev_logK_aq_298 [log10(-)]"] = calculations.unc_logk_aq_298
                 if calculations.logs_298_from_aq is not None:
-                    df['logS_298_from_aq [log10(mol/L)]'] = calculations.logs_298_from_aq
-                    df['stdev_logS_298_from_aq [log10(mol/L)]'] = calculations.unc_logs_298_from_aq
+                    df[
+                        "logS_298_from_aq [log10(mol/L)]"
+                    ] = calculations.logs_298_from_aq
+                    df[
+                        "stdev_logS_298_from_aq [log10(mol/L)]"
+                    ] = calculations.unc_logs_298_from_aq
                 if calculations.logk_ref_298 is not None:
-                    df['logK_ref_298 [log10(-)]'] = calculations.logk_ref_298
-                    df['stdev_logK_ref_298 [log10(-)]'] = calculations.unc_logk_ref_298
+                    df["logK_ref_298 [log10(-)]"] = calculations.logk_ref_298
+                    df["stdev_logK_ref_298 [log10(-)]"] = calculations.unc_logk_ref_298
                 if calculations.logs_298_from_ref is not None:
-                    df['logS_298_from_ref [log10(mol/L)]'] = calculations.logs_298_from_ref
-                    df['stdev_logS_298_from_ref [log10(mol/L)]'] = calculations.unc_logs_298_from_ref
+                    df[
+                        "logS_298_from_ref [log10(mol/L)]"
+                    ] = calculations.logs_298_from_ref
+                    df[
+                        "stdev_logS_298_from_ref [log10(mol/L)]"
+                    ] = calculations.unc_logs_298_from_ref
                 if calculations.V is not None:
-                    df['V_solute_parameter'] = calculations.V
-                    df['adjacent diol parameter'] = calculations.I_OHadj
-                    df['non-adjacent diol parameter'] = calculations.I_OHnonadj
-                    df['amine parameter'] = calculations.I_NH
-                    df['dH_sub_298 [kcal/mol]'] = calculations.hsubl_298
+                    df["V_solute_parameter"] = calculations.V
+                    df["adjacent diol parameter"] = calculations.I_OHadj
+                    df["non-adjacent diol parameter"] = calculations.I_OHnonadj
+                    df["amine parameter"] = calculations.I_NH
+                    df["dH_sub_298 [kcal/mol]"] = calculations.hsubl_298
                 if calculations.Cp_gas is not None:
-                    df['Cp_gas [cal/K/mol]'] = calculations.Cp_gas
-                    df['Cp_solid [cal/K/mol]'] = calculations.Cp_solid
+                    df["Cp_gas [cal/K/mol]"] = calculations.Cp_gas
+                    df["Cp_solid [cal/K/mol]"] = calculations.Cp_solid
                 if calculations.hsolv_T is not None:
-                    df['dG_solv_T [kcal/mol]'] = calculations.gsolv_T
-                    df['dH_solv_T [kcal/mol]'] = calculations.hsolv_T
-                    df['dS_solv_T [kcal/K/mol]'] = calculations.ssolv_T
+                    df["dG_solv_T [kcal/mol]"] = calculations.gsolv_T
+                    df["dH_solv_T [kcal/mol]"] = calculations.hsolv_T
+                    df["dS_solv_T [kcal/K/mol]"] = calculations.ssolv_T
 
     if df_wrong_input is not None:
         df = pd.concat([df, df_wrong_input], ignore_index=True)
@@ -349,4 +423,3 @@ def write_results(df,
 #                                solv_crit_prop_dict=None,
 #                                logger='/home/fhvermei/Software/PycharmProjects/SolPropML/test.log')
 #
-
