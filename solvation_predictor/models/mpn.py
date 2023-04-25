@@ -10,6 +10,9 @@ from solvation_predictor.features.molecule_encoder import MolEncoder
 
 
 class MPN(nn.Module):
+    """
+    This is a class that contains a message passing neural network for encoding a molecule.
+    """
     def __init__(
         self,
         depth=3,
@@ -58,6 +61,11 @@ class MPN(nn.Module):
         return dummy_encoder.get_sizes()
 
     def forward(self, data: DataTensor):
+        """
+        Encodes a batch of molecular graphs.
+        :param data: Parameter containing the data on which the model needs to be run.
+        :return: A PyTorch tensor of shape :code:`(num_molecules, hidden_size)` containing the encoding of each molecule.
+        """
         f_atoms = data.f_atoms
         f_bonds = data.f_bonds
         f_mol = data.f_mols
@@ -155,8 +163,9 @@ class MPN(nn.Module):
 def get_activation_function(activation) -> nn.Module:
     """
     Gets an activation function module given the name of the activation.
-       :param activation: The name of the activation function.
-       :return: The activation function module.
+
+    :param activation: The name of the activation function.
+    :return: The activation function module.
     """
     if activation == "ReLU":
         return nn.ReLU()
@@ -177,11 +186,12 @@ def get_activation_function(activation) -> nn.Module:
 def index_select_ND(source: torch.Tensor, index: torch.Tensor) -> torch.Tensor:
     """
     Selects the message features from source corresponding to the atom or bond indices in index.
+
     :param source: A tensor of shape (num_bonds, hidden_size) containing message features.
     :param index: A tensor of shape (num_atoms/num_bonds, max_num_bonds) containing the atom or bond
-    indices to select from source.
+        indices to select from source.
     :return: A tensor of shape (num_atoms/num_bonds, max_num_bonds, hidden_size) containing the message
-    features corresponding to the atoms/bonds specified in index.
+        features corresponding to the atoms/bonds specified in index.
     """
     index_size = index.size()  # (num_atoms/num_bonds, max_num_bonds)
     suffix_dim = source.size()[1:]  # (hidden_size,)

@@ -36,6 +36,20 @@ def train(
     writer: SummaryWriter = None,
     inp: InputArguments = None,
 ) -> (int, float):
+    """
+    Trains a model for an epoch.
+
+    :param model: A class containing the model used for training.
+    :param data: A class containing a list of data points on which operations can be executed.
+    :param loss_func: Loss function.
+    :param optimizer: An optimizer.
+    :param scheduler: A learning rate scheduler.
+    :param n_iter: The number of iterations (training examples) trained on so far.
+    :param logger: A logger for recording output.
+    :param writer: A tensorboardX SummaryWriter.
+    :param inp: A class containing all input arguments for the training procedure.
+    :return: The total number of iterations (training examples) trained on so far and the sum of loss.
+    """
     debug = logger.debug if logger is not None else print
 
     model.train()
@@ -88,6 +102,14 @@ def train(
 
 
 def run_training(inp: InputArguments, all_data: DatapointList, logger: Logger):
+    """
+    Loads data, trains a Chemprop model, and returns test scores for the model checkpoint with the highest validation
+    score.
+
+    :param inp: A Class object containing arguments for loading data and training the SolProp model.
+    :param all_data: A Class object containing the data.
+    :param logger: A logger to record output.
+    """
     logger = logger.debug if logger is not None else print
     inp.num_mols = len(all_data[0].smiles)
     inp.f_mol_size = all_data[0].get_mol_encoder()[0].get_sizes()[2]

@@ -10,6 +10,9 @@ from logging import Logger
 
 
 class Model(nn.Module):
+    """
+    A class object that is a model which contains a message passing network following by feed-forward layers.
+    """
     def __init__(self, inp: InputArguments, logger: Logger = None):
         super(Model, self).__init__()
         logger = logger.debug if logger is not None else print
@@ -81,6 +84,12 @@ class Model(nn.Module):
         )
 
     def forward(self, data):
+        """
+        Runs the Model Class on input.
+
+        :param data: Parameter containing the data on which the model needs to be run.
+        :return: The output of the Class Model, containing a list of property predictions.
+        """
         datapoints = data.get_data()
 
         if not self.shared:

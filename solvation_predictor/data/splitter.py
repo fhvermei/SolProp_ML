@@ -2,7 +2,9 @@ import random
 
 
 class Splitter:
-    """Allows to split the data, either keeping the order in the input or with a random split"""
+    """
+    Allows to split the data, either keeping the order in the input or with a random split
+    """
     def __init__(self, seed=None, split_ratio=(0.8,0.1,0.1)):
         self.seed = seed
         self.x_train = split_ratio[0]

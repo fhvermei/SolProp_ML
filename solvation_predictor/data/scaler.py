@@ -3,9 +3,10 @@ from solvation_predictor.data.data import DatapointList
 
 
 class Scaler:
-    """Class used to scale targets and features, either standard scaling or minmax scaling
-    It also allows for inverse operation of the scaling
-    The scaled targets and features are saved in the Datapoint object"""
+    """
+    Class used to scale targets and features, either standard scaling or minmax scaling. It also allows for inverse
+    operation of the scaling. The scaled targets and features are saved in the Datapoint object.
+    """
 
     def __init__(self, data: DatapointList = None, scale_features: bool = True, mean=0.0, mean_f=0.0, std=0.0, std_f=0.0):
         self.scale_features = scale_features

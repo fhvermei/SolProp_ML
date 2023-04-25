@@ -192,9 +192,11 @@ class DataTensor:
 
 
 def read_data(inp: InputArguments, encoding='utf-8', file=None):
-    """reading in the data, assume input, features and next targets
-    the header should contain 'mol', 'feature', 'frac' or 'target' as a keyword
-    input are either smiles or inchi, but should be the same if multiple molecules are read"""
+    """
+    Teading in the data, assume input, features and next targets. The header should contain 'mol', 'feature', 'frac' or
+    'target' as a keyword and headers without these keywords are not allowed. Input are either smiles or inchi, but
+    should be the same if multiple molecules are read
+    """
     if file is None:
         file = inp.input_file
 
@@ -237,9 +239,11 @@ def read_data(inp: InputArguments, encoding='utf-8', file=None):
 
 
 def read_data_from_df(inp: InputArguments, encoding='utf-8', file=None, df=None, max=None):
-    """reading in the data, assume input, features and next targets
-    the header should contain 'mol', 'feature', 'frac' or 'target' as a keyword
-    input are either smiles or inchi, but should be the same if multiple molecules are read"""
+    """
+    Reading in the data, assume input, features and next targets. The header should contain 'mol', 'feature', 'frac' or
+    'target' as a keyword and headers without these keywords are not allowed. Input are either smiles or inchi, but
+    should be the same if multiple molecules are read
+    """
     if file is None and df is None:
         file = inp.input_file
     elif df is None:

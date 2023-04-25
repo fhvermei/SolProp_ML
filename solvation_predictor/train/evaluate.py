@@ -34,7 +34,6 @@ def evaluate(
     results = evaluate_predictions(
         preds=preds, targets=targets, metric_func=metric_func
     )
-
     return results
 
 

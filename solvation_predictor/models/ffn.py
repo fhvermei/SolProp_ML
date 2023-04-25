@@ -2,6 +2,9 @@ import torch.nn as nn
 
 
 class FFN(nn.Module):
+    """
+    This is a class that contains a feed forward neural network for predicting output from a molecular fingerprint.
+    """
     def __init__(
         self,
         input_size,
@@ -46,6 +49,13 @@ class FFN(nn.Module):
         )
 
     def forward(self, inp):
+        """
+        Runs the Class FFN on input.
+
+        :param inp: A Class object containing input parameters.
+        :return: A PyTorch tensor of shape :code:`(num_molecules, hidden_size)` containing the encoding of each
+            molecule.
+        """
         output = self.ffn(inp)
         output = self.output_layer(output)
         return output
