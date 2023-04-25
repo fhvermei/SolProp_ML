@@ -2,44 +2,46 @@ import torch
 
 
 class InputArguments:
+    """
+    Class that holds all input arguments for the prediction and training procedures. Paths, training parameters and
+    neural network parameters are included.
+    """
     def __init__(self):
         self.optimization = False
 
         # reading and processing data
         self.dir = "/Users/u0161682/Documents/GitHub/SolProp_ML/data/SolProp_v1.2/"
-        # self.input_file = self.dir + "databases/logP/active_learning/theory_reduced.csv"
         self.input_file = self.dir + "Data/CombiSolv-QM-mini.csv"
         self.split_ratio = (0.8, 0.1, 0.1)
         self.seed = 0
-        self.model_path = "/Users/u0161682/Documents/GitHub/SolProp_ML/data/SolProp_v1.2/Model_predictions/fold_0/model0/model.pt"
+        self.model_path = "/Users/u0161682/Documents/GitHub/SolProp_ML/data/SolProp_v1.2/Model_predictions/" \
+                          "fold_0/model0/model.pt"
         self.output_dir = self.dir + "Model_predictions"
         self.make_plots = True
         self.scale = "standard"  # standard or minmax
         self.scale_features = False
         self.use_same_scaler_for_features = False
-        self.split = "random"  # random or scaffold or wo_solvents (the latter is based on random split) or kmeans or onecross
+        # random or scaffold or wo_solvents (the latter is based on random split) or kmeans or onecross
+        self.split = "random"
         self.kmeans_split_base = "solvent"  # solvent or solute depending on if you want first or second molecule
         self.save_memory = False
 
         # for featurization
         self.property = "solvation"  # "solvation"  # alternatives are solvation, Tm and logS, None and nbv_f1, nbv_f2
         self.add_hydrogens_to_solvent = False  # adds hydrogens to first column smiles
-        self.mix = (
-            False  # features are fractions of the different molecules in the same order
-        )
+        self.mix = False  # features are fractions of the different molecules in the same order
 
         # for active learning
         self.uncertainty = False  # calculate and output aleotoric uncertainties
         self.ensemble_variance = False  # calculate and output ensemble variance, epi
-
-        self.active_learning_batch_size = (
-            "adaptpercent-10"  # number or adaptpercent-n for n% of training set
-        )
+        # number or adaptpercent-n for n% of training set
+        self.active_learning_batch_size = "adaptpercent-10"
         self.active_learning_iterations = 100
-        self.data_selection = "epistemic"  # how to select data, options are: epistemic, total and random, epi_mol, epi_scaled (for epi unc on scaled predictions)
+        # how to select data, options are: epistemic, total and random, epi_mol, epi_scaled
+        # (for epi unc on scaled predictions)
+        self.data_selection = "epistemic"
         self.restart_al = False
-
-        self.AL_spit_ratio = (
+        self.active_learning_split_ratio = (
             0.3,
             0.4,
             0.3,
@@ -56,7 +58,8 @@ class InputArguments:
             self.dir + f"examples/trained_models/model_Gsolv{i}0.pt"
             for i in range(0, 10)
         ]
-        self.pretraining_fix = "none"  # mpn or ffn or none or onlylast or mpn1 or onlylast1 if you have only one molecule
+        # mpn or ffn or none or onlylast or mpn1 or onlylast1 if you have only one molecule
+        self.pretraining_fix = "none"
         self.learning_rates = (0.001, 0.0001, 0.001)  # initial, final, max
         self.warm_up_epochs = (
             2.0  # you need min 1 with adam optimizer and Noam learning rate scheduler
@@ -94,9 +97,7 @@ class InputArguments:
         self.att_dropout = 0.0
         self.att_bias = False
         self.att_activation = "ReLU"
-        self.att_normalize = (
-            "sigmoid"  # sigmoid or softmax or logsigmoid of logsoftmax or None
-        )
+        self.att_normalize = "sigmoid"  # sigmoid or softmax or logsigmoid of logsoftmax or None
         self.att_first_normalize = False
 
         # for ffn
@@ -108,8 +109,6 @@ class InputArguments:
 
         # results
         self.print_weigths = False
-
-        # self.model_path = self.dir + "examples/train_wo_ions/scan_ffn/20_1000_wo_water/fold_1/model0/model.pt"
         self.postprocess = False
 
         # DONT CHANGE!

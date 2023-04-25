@@ -15,22 +15,19 @@ from sklearn.metrics import mean_absolute_error, mean_squared_error
 import math
 
 if __name__ == "__main__":
+    # Load input arguments Class and create logger
     inp = inp.InputArguments()
-
     logging = create_logger("predict", inp.output_dir)
     logger = logging.debug
 
     # load scalar and training input
     scaler = load_scaler(inp.model_path)
     train_inp = load_input(inp.model_path)
-
     all_data = read_data(inp)
-
     inp.num_mols = len(all_data[0].mol)
     inp.f_mol_size = all_data[0].get_mol_encoder()[0].get_sizes()[2]
     inp.num_targets = len(all_data[0].targets)
     inp.num_features = len(all_data[0].features)
-
     all_data = DatapointList(all_data)
 
     if inp.scale == "standard":
@@ -40,9 +37,12 @@ if __name__ == "__main__":
     else:
         raise ValueError("scaler not supported")
 
+    # Load the trained model and get the output from the predictions
     model = load_checkpoint(inp.model_path, inp, logger=logging)
     preds = predict(model=model, data=all_data, scaler=scaler)
 
+    # Write the raw results to a results_prediction.csv file. It includes the molecular strings, targets, predictions
+    # and the difference between targets and predictions
     with open(os.path.join(inp.output_dir, "results_prediction.csv"), "w+") as f:
         writer = csv.writer(f)
         i = all_data.get_data()[0]
@@ -80,6 +80,7 @@ if __name__ == "__main__":
     ax.set(xlabel="targets", ylabel="predictions")
     fig.savefig(os.path.join(inp.output_dir, "parity_predictions.png"))
 
+    # Write some results metrics from the prediction to a summary.csv file.
     with open(os.path.join(inp.output_dir, "summary.csv"), "w+") as f:
         writer = csv.writer(f)
         writer.writerow(["rmse", "mse", "mae", "max", "r2"])
