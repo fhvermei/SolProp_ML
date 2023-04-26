@@ -103,10 +103,12 @@ class Model(nn.Module):
                 mol_encoding, atoms_vecs = self.mpns[tensors.index(i)](tensor)
                 mol_encodings.append(mol_encoding)
 
-            vec = torch.empty(mol_encodings[0].size())
-
-            for i in range(1, self.num_mols):
-                vec = torch.add(vec, torch.mul(mol_encodings[i], molefracs[0][i-1]))
+            if len(molefracs) == 0:
+                vec = mol_encodings[0]
+            else:
+                vec = torch.empty(mol_encodings[0].size())
+                for i in range(1, self.num_mols):
+                    vec = torch.add(vec, torch.mul(mol_encodings[i], molefracs[0][i-1]))
             input = torch.cat([mol_encodings[0], vec], dim=1)
         else:
             tensor = []

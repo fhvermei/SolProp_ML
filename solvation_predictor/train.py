@@ -14,7 +14,4 @@ if __name__ == "__main__":
     all_data = read_data(inp)
 
     # Run the training procedure
-    if not inp.optimization:
-        run_training(inp, all_data, logging)
-    else:
-        run_training(inp, all_data, logging)
+    run_training(inp, all_data, logging)
