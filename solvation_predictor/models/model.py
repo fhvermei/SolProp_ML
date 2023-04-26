@@ -21,6 +21,7 @@ class Model(nn.Module):
         self.feature_size = inp.num_features
         self.cudap = inp.cuda
         self.property = inp.property
+        self.num_mols = inp.num_mols
 
         if not self.shared:
             # self.shared = False
@@ -30,28 +31,20 @@ class Model(nn.Module):
                 f"activation function {inp.mpn_activation} and bias {inp.mpn_bias}"
             )
             # only works for 2 molecules
-            self.mpn_1 = MPN(
-                depth=inp.depth,
-                hidden_size=inp.mpn_hidden,
-                dropout=inp.mpn_dropout,
-                activation=inp.mpn_activation,
-                bias=inp.mpn_bias,
-                cuda=inp.cuda,
-                atomMessage=False,
-                property=self.property,
-                aggregation=inp.aggregation,
-            )
-            self.mpn_2 = MPN(
-                depth=inp.depth,
-                hidden_size=inp.mpn_hidden,
-                dropout=inp.mpn_dropout,
-                activation=inp.mpn_activation,
-                bias=inp.mpn_bias,
-                cuda=inp.cuda,
-                atomMessage=False,
-                property=self.property,
-                aggregation=inp.aggregation,
-            )
+            self.mpns = []
+            for i in range(inp.num_mols):
+                mpn = MPN(
+                    depth=inp.depth,
+                    hidden_size=inp.mpn_hidden,
+                    dropout=inp.mpn_dropout,
+                    activation=inp.mpn_activation,
+                    bias=inp.mpn_bias,
+                    cuda=inp.cuda,
+                    atomMessage=False,
+                    property=self.property,
+                    aggregation=inp.aggregation,
+                )
+                self.mpns.append(mpn)
         else:
             logger(
                 f"Make MPN model with depth {inp.depth}, hidden size {inp.mpn_hidden}, dropout {inp.mpn_dropout}, "
@@ -93,16 +86,24 @@ class Model(nn.Module):
         datapoints = data.get_data()
 
         if not self.shared:
-            tensor_1 = []
-            tensor_2 = []
-            for d in data.get_data():
-                tensor_1.append(d.get_mol_encoder()[0])
-                tensor_2.append(d.get_mol_encoder()[1])
-            tensor_1 = DataTensor(tensor_1, property=self.property)
-            tensor_2 = DataTensor(tensor_2, property=self.property)
-            mol_encoding_1, atoms_vecs_1 = self.mpn_1(tensor_1)
-            mol_encoding_2, atoms_vecs_2 = self.mpn_2(tensor_2)
-            input = torch.cat([mol_encoding_1, mol_encoding_2], dim=1)
+            tensors = []
+            molefracs = []
+            for i in range(self.num_mols):
+                tensors.append([])
+            for d in datapoints:
+                molefracs.append(d.molefracs)
+                for i in tensors:
+                    i.append(d.get_mol_encoder()[tensors.index(i)])
+            mol_encodings = []
+            atoms_vecs = []
+            for i in tensors:
+                tensor = DataTensor(i[0], property=self.property)
+                mol_encoding, atoms_vecs = self.mpns[tensors.index(i)](tensor, property=self.property)
+                mol_encodings.append(mol_encoding)
+            vec = torch.empty(mol_encodings[0].size())
+            for i in range(1, self.num_mols):
+                vec = torch.add(vec, torch.mul(mol_encodings[i], molefracs[i-1]))
+            input = torch.cat([mol_encodings[0], vec], dim=1)
 
         else:
             tensor = []

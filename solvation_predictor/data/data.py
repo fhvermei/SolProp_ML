@@ -20,7 +20,7 @@ class DataPoint:
     the smiles are converted to inchi (including a fixed H layer) and moles
     After operations it also contains a list of scaled targets, scaled features, scaled predictions and predictions"""
 
-    def __init__(self, smiles, targets, features, inp: InputArguments):
+    def __init__(self, smiles, targets, features, molefracs, inp: InputArguments):
         if "InChI" in smiles[0]:
             self.mol = [Chem.MolFromInchi(i) if i else None for i in smiles]
             self.inchi = [Chem.MolToInchi(i, options='/fixedH') for i in self.mol]
@@ -37,6 +37,7 @@ class DataPoint:
         self.updated_atom_vecs = []
         self.targets = targets
         self.features = features
+        self.molefracs = molefracs
         self.scaled_targets = []
         self.scaled_features = []
         self.scaled_predictions = []
@@ -90,7 +91,6 @@ class DataPoint:
 class DatapointList(Dataset):
     """A DatapointList is simply a list of datapoints and allows for operations on the dataset"""
 
-    def __init__(self, data=list()):
         self.data = data
 
     def get_data(self):
@@ -107,6 +107,9 @@ class DatapointList(Dataset):
 
     def get_scaled_features(self):
         return [d.scaled_features for d in self.data]
+
+    def get_molefracs(self):
+        return [d.molefracs for d in self.data]
 
     def set_scaled_targets(self, l):
         for i in range(0, len(l)):
@@ -193,7 +196,7 @@ class DataTensor:
 
 def read_data(inp: InputArguments, encoding='utf-8', file=None):
     """
-    Teading in the data, assume input, features and next targets. The header should contain 'mol', 'feature', 'frac' or
+    Reading in the data, assume input, features and next targets. The header should contain 'mol', 'feature', 'frac' or
     'target' as a keyword and headers without these keywords are not allowed. Input are either smiles or inchi, but
     should be the same if multiple molecules are read
     """
@@ -204,36 +207,61 @@ def read_data(inp: InputArguments, encoding='utf-8', file=None):
     reader = csv.reader(f, delimiter=';')
 
     header = next(reader)
+    print(header)
     all_data = list()
-    species_count = 0
-    target_count = 0
-    feature_count = 0
+    solutes_count = []
+    solvents_count = []
+    targets_count = []
+    features_count = []
+    molefracs_count = []
+
     for i in header:
-        if "mol" in i:
-            species_count += 1
+        if "solute" in i:
+            solutes_count.append(header.index(i))
+        if "solvent" in i:
+            solvents_count.append(header.index(i))
         if "target" in i:
-            target_count += 1
+            targets_count.append(header.index(i))
         if "feature" in i:
-            feature_count += 1
+            features_count.append(header.index(i))
+        if "molefrac" in i:
+            molefracs_count.append(header.index(i))
+
+    if len(solutes_count) > 1:
+        raise NotImplementedError("The SolProp package is not yet able to handle multiple solutes")
+    if len(solutes_count) == 0 or len(solvents_count) == 0:
+        raise NameError("The solute or solvent header is not found.")
+
+    print(solutes_count, solvents_count, targets_count, features_count, molefracs_count)
 
     for line in reader:
         smiles = list()
         features = list()
         targets = list()
-        for count in range(0, species_count):
+        molefracs = list()
+        for count in solutes_count:
             smiles.append(line[count]) if line[count] != '' else smiles.append(None)
-        for count in range(0, feature_count):
-            features.append(float(line[count+species_count])) \
-                if line[count+species_count] else features.append(None)
-        for count in range(0, target_count):
-            if len(line[count+feature_count+species_count]) > 0:
-                targets.append(float(line[count+feature_count+species_count]))
+        for count in solvents_count:
+            smiles.append(line[count]) if line[count] != '' else smiles.append(None)
+        for count in targets_count:
+            if len(line[count]) > 0:
+                targets.append(float(line[count]))
             else:
                 targets.append(np.NaN)
-        try:
-            all_data.append(DataPoint(smiles, targets, features, inp))
-        except:
-            continue
+        for count in features_count:
+            features.append(float(line[count])) \
+                if line[count] else features.append(None)
+        for count in molefracs_count:
+            molefracs.append(line[count]) if line[count] != '' else molefracs.append(None)
+            if line[count] != '' and len(molefracs_count) == 1:
+                molefracs.append(1. - float(line[count]))
+            if line[count] != '' and len(molefracs_count) > 1:
+                raise NotImplementedError("Importing mole fractions for more than 2 solvent not possible yet.")
+        print(smiles, features, targets, molefracs)
+        # try:
+        all_data.append(DataPoint(smiles, targets, features, molefracs, inp))
+        # except:
+        #     continue
     f.close()
     return all_data
 
