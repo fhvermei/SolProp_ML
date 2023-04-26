@@ -91,6 +91,7 @@ class DataPoint:
 class DatapointList(Dataset):
     """A DatapointList is simply a list of datapoints and allows for operations on the dataset"""
 
+    def __init__(self, data):
         self.data = data
 
     def get_data(self):
@@ -207,7 +208,6 @@ def read_data(inp: InputArguments, encoding='utf-8', file=None):
     reader = csv.reader(f, delimiter=';')
 
     header = next(reader)
-    print(header)
     all_data = list()
     solutes_count = []
     solvents_count = []
@@ -232,8 +232,6 @@ def read_data(inp: InputArguments, encoding='utf-8', file=None):
     if len(solutes_count) == 0 or len(solvents_count) == 0:
         raise NameError("The solute or solvent header is not found.")
 
-    print(solutes_count, solvents_count, targets_count, features_count, molefracs_count)
-
     for line in reader:
         smiles = list()
         features = list()
@@ -252,12 +250,11 @@ def read_data(inp: InputArguments, encoding='utf-8', file=None):
             features.append(float(line[count])) \
                 if line[count] else features.append(None)
         for count in molefracs_count:
-            molefracs.append(line[count]) if line[count] != '' else molefracs.append(None)
+            molefracs.append(float(line[count])) if line[count] != '' else molefracs.append(None)
             if line[count] != '' and len(molefracs_count) == 1:
                 molefracs.append(1. - float(line[count]))
             if line[count] != '' and len(molefracs_count) > 1:
                 raise NotImplementedError("Importing mole fractions for more than 2 solvent not possible yet.")
-        print(smiles, features, targets, molefracs)
         # try:
         all_data.append(DataPoint(smiles, targets, features, molefracs, inp))
         # except:
