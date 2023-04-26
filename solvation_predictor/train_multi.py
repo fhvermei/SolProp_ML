@@ -12,6 +12,5 @@ if __name__ == "__main__":
     logger(f"Doing {inp_multi.num_folds} different folds")
     logger(f"Doing {inp_multi.num_models} different models")
     all_data = read_data(inp_multi)
-    print(all_data[1].targets)
 
     run_training(inp_multi, all_data, logging)

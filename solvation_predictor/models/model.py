@@ -67,7 +67,7 @@ class Model(nn.Module):
             f"dropout {inp.ffn_dropout}, activation function {inp.ffn_activation} and bias {inp.ffn_bias}"
         )
         self.ffn = FFN(
-            (inp.mpn_hidden + inp.f_mol_size) * inp.num_mols + inp.num_features,
+            (inp.mpn_hidden + inp.f_mol_size) * 2 + inp.num_features,
             inp.num_targets,
             ffn_hidden_size=inp.ffn_hidden,
             num_layers=inp.ffn_num_layers,
@@ -88,23 +88,26 @@ class Model(nn.Module):
         if not self.shared:
             tensors = []
             molefracs = []
+
             for i in range(self.num_mols):
                 tensors.append([])
             for d in datapoints:
                 molefracs.append(d.molefracs)
                 for i in tensors:
-                    i.append(d.get_mol_encoder()[tensors.index(i)])
+                    i.append([d.get_mol_encoder()[tensors.index(i)]])
+
             mol_encodings = []
             atoms_vecs = []
             for i in tensors:
                 tensor = DataTensor(i[0], property=self.property)
-                mol_encoding, atoms_vecs = self.mpns[tensors.index(i)](tensor, property=self.property)
+                mol_encoding, atoms_vecs = self.mpns[tensors.index(i)](tensor)
                 mol_encodings.append(mol_encoding)
-            vec = torch.empty(mol_encodings[0].size())
-            for i in range(1, self.num_mols):
-                vec = torch.add(vec, torch.mul(mol_encodings[i], molefracs[i-1]))
-            input = torch.cat([mol_encodings[0], vec], dim=1)
 
+            vec = torch.empty(mol_encodings[0].size())
+
+            for i in range(1, self.num_mols):
+                vec = torch.add(vec, torch.mul(mol_encodings[i], molefracs[0][i-1]))
+            input = torch.cat([mol_encodings[0], vec], dim=1)
         else:
             tensor = []
             for d in data.get_data():
@@ -112,13 +115,14 @@ class Model(nn.Module):
                     if enc:
                         tensor.append(enc)
             tensor = DataTensor(tensor, property=self.property)
-            mol_encoding, atoms_vecs = self.mpn(tensor)
+            mol_encodings, atoms_vecs = self.mpn(tensor)
             num_mols = len(datapoints[0].get_mol())
-            sizes = list(mol_encoding.size())
+            sizes = list(mol_encodings.size())
             new = sizes[0] / num_mols
             sizes[1] = int(sizes[0] * sizes[1] / new)
             sizes[0] = int(new)
-            input = mol_encoding.view(sizes)
+            input = mol_encodings.view(sizes)
+            mol_encodings, atoms_vecs = [mol_encodings], [atoms_vecs]
 
         if self.feature_size > 0:
             features = data.get_scaled_features()
@@ -127,19 +131,12 @@ class Model(nn.Module):
                 features = features.cuda()
             input = torch.cat([input, features], dim=1)
 
-        if self.postprocess and not self.shared:
+        if self.postprocess:
             for i in range(0, len(datapoints)):
-                datapoints[i].updated_mol_vecs = [mol_encoding_1[i], mol_encoding_2[i]]
+                datapoints[i].updated_mol_vecs = mol_encodings[i]
 
             for i in range(0, len(datapoints)):
-                datapoints[i].updated_atom_vecs = [atoms_vecs_1[i], atoms_vecs_2[i]]
-
-        if self.postprocess and self.shared:
-            for i in range(0, len(datapoints)):
-                datapoints[i].updated_mol_vecs = [mol_encoding[i]]
-
-            for i in range(0, len(datapoints)):
-                datapoints[i].updated_atom_vecs = [atoms_vecs[i]]
+                datapoints[i].updated_atom_vecs = atoms_vecs[i]
 
         output = self.ffn(input)
         del input
