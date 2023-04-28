@@ -205,7 +205,7 @@ def read_data(inp: InputArguments, encoding='utf-8', file=None):
         file = inp.input_file
 
     f = open(file, 'r', encoding=encoding)
-    reader = csv.reader(f, delimiter=';')
+    reader = csv.reader(f, delimiter=',')
 
     header = next(reader)
     all_data = list()
@@ -216,11 +216,11 @@ def read_data(inp: InputArguments, encoding='utf-8', file=None):
     molefracs_count = []
 
     for i in header:
-        if "solute" in i:
+        if "inchi solute" in i:
             solutes_count.append(header.index(i))
-        if "solvent" in i:
+        if "inchi solvent" in i:
             solvents_count.append(header.index(i))
-        if "target" in i:
+        if "dGsolv" in i:
             targets_count.append(header.index(i))
         if "feature" in i:
             features_count.append(header.index(i))
@@ -228,6 +228,7 @@ def read_data(inp: InputArguments, encoding='utf-8', file=None):
             molefracs_count.append(header.index(i))
 
     if len(solutes_count) > 1:
+        print(solutes_count)
         raise NotImplementedError("The SolProp package is not yet able to handle multiple solutes")
     if len(solutes_count) == 0 or len(solvents_count) == 0:
         raise NameError("The solute or solvent header is not found.")

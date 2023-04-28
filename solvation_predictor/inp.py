@@ -11,7 +11,7 @@ class InputArguments:
 
         # reading and processing data
         self.dir = "/Users/u0161682/Documents/GitHub/SolProp_ML/data/SolProp_v1.2/"
-        self.input_file = self.dir + "dummy_multi_solvent.csv"
+        self.input_file = self.dir + "Data/CombiSolv-QM.txt"
         self.split_ratio = (0.8, 0.1, 0.1)
         self.seed = 0
         self.model_path = "/Users/u0161682/Documents/GitHub/SolProp_ML/data/SolProp_v1.2/Model_predictions/" \

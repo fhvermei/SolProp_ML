@@ -88,28 +88,28 @@ class Model(nn.Module):
         if not self.shared:
             tensors = []
             molefracs = []
-
             for i in range(self.num_mols):
                 tensors.append([])
-            for d in datapoints:
-                molefracs.append(d.molefracs)
-                for i in tensors:
-                    i.append([d.get_mol_encoder()[tensors.index(i)]])
+
+            for i in tensors:
+                for d in datapoints:
+                    molefracs.append(d.molefracs)
+                    i.append(d.get_mol_encoder()[tensors.index(i)])
 
             mol_encodings = []
             atoms_vecs = []
             for i in tensors:
-                tensor = DataTensor(i[0], property=self.property)
+                tensor = DataTensor(i, property=self.property)
                 mol_encoding, atoms_vecs = self.mpns[tensors.index(i)](tensor)
                 mol_encodings.append(mol_encoding)
 
-            if len(molefracs) == 0:
-                vec = mol_encodings[0]
+            if not molefracs[0]:
+                input = torch.cat([mol_encodings[0], mol_encodings[1]], dim=1)
             else:
                 vec = torch.empty(mol_encodings[0].size())
                 for i in range(1, self.num_mols):
                     vec = torch.add(vec, torch.mul(mol_encodings[i], molefracs[0][i-1]))
-            input = torch.cat([mol_encodings[0], vec], dim=1)
+                input = torch.cat([mol_encodings[0], vec], dim=1)
         else:
             tensor = []
             for d in data.get_data():
@@ -141,6 +141,7 @@ class Model(nn.Module):
                 datapoints[i].updated_atom_vecs = atoms_vecs[i]
 
         output = self.ffn(input)
+
         del input
 
         for i in range(0, len(datapoints)):
