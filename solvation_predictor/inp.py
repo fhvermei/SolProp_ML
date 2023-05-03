@@ -1,5 +1,5 @@
 import torch
-
+import math
 
 class InputArguments:
     """
@@ -11,7 +11,7 @@ class InputArguments:
 
         # reading and processing data
         self.dir = "/Users/u0161682/Documents/GitHub/SolProp_ML/data/SolProp_v1.2/"
-        self.input_file = self.dir + "Data/CombiSolv-QM.txt"
+        self.input_file = self.dir + "Data/MiniMultiQM.csv"
         self.split_ratio = (0.8, 0.1, 0.1)
         self.seed = 0
         self.model_path = "/Users/u0161682/Documents/GitHub/SolProp_ML/data/SolProp_v1.2/Model_predictions/" \
@@ -71,7 +71,8 @@ class InputArguments:
         # in case of exponential
         self.exponential_decay = 0.1
         self.minimize_score = True
-        self.cuda = True and torch.cuda.is_available()
+        # self.cuda = True and torch.cuda.is_available()
+        self.cuda = True and torch.backends.mps.is_available()
         self.gpu = 4
 
         # for mpn

@@ -31,20 +31,19 @@ class Model(nn.Module):
                 f"activation function {inp.mpn_activation} and bias {inp.mpn_bias}"
             )
             # only works for 2 molecules
-            self.mpns = []
-            for i in range(inp.num_mols):
-                mpn = MPN(
-                    depth=inp.depth,
-                    hidden_size=inp.mpn_hidden,
-                    dropout=inp.mpn_dropout,
-                    activation=inp.mpn_activation,
-                    bias=inp.mpn_bias,
-                    cuda=inp.cuda,
-                    atomMessage=False,
-                    property=self.property,
-                    aggregation=inp.aggregation,
-                )
-                self.mpns.append(mpn)
+            mpn = MPN(
+                depth=inp.depth,
+                hidden_size=inp.mpn_hidden,
+                dropout=inp.mpn_dropout,
+                activation=inp.mpn_activation,
+                bias=inp.mpn_bias,
+                cuda=inp.cuda,
+                atomMessage=False,
+                property=self.property,
+                aggregation=inp.aggregation,
+            )
+            self.mpns = nn.ModuleList([mpn for i in range(inp.num_mols)])
+
         else:
             logger(
                 f"Make MPN model with depth {inp.depth}, hidden size {inp.mpn_hidden}, dropout {inp.mpn_dropout}, "
@@ -106,9 +105,13 @@ class Model(nn.Module):
             if not molefracs[0]:
                 input = torch.cat([mol_encodings[0], mol_encodings[1]], dim=1)
             else:
-                vec = torch.empty(mol_encodings[0].size())
+                vec = torch.empty(mol_encodings[0].size(), device="mps")
                 for i in range(1, self.num_mols):
-                    vec = torch.add(vec, torch.mul(mol_encodings[i], molefracs[0][i-1]))
+                    molefrac = torch.Tensor([molefracs[0][i-1]])
+                    if self.cudap:
+                        device = torch.device('mps')
+                        molefrac = molefrac.to(device)
+                    vec = torch.add(vec, torch.mul(mol_encodings[i], molefrac))
                 input = torch.cat([mol_encodings[0], vec], dim=1)
         else:
             tensor = []

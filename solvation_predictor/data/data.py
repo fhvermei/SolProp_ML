@@ -205,7 +205,7 @@ def read_data(inp: InputArguments, encoding='utf-8', file=None):
         file = inp.input_file
 
     f = open(file, 'r', encoding=encoding)
-    reader = csv.reader(f, delimiter=',')
+    reader = csv.reader(f, delimiter=';')
 
     header = next(reader)
     all_data = list()
@@ -216,11 +216,13 @@ def read_data(inp: InputArguments, encoding='utf-8', file=None):
     molefracs_count = []
 
     for i in header:
-        if "inchi solute" in i:
+        if "solute_inchi" in i:
             solutes_count.append(header.index(i))
-        if "inchi solvent" in i:
+        if "pair1" in i:
             solvents_count.append(header.index(i))
-        if "dGsolv" in i:
+        if "pair2" in i:
+            solvents_count.append(header.index(i))
+        if "Gsolv" in i:
             targets_count.append(header.index(i))
         if "feature" in i:
             features_count.append(header.index(i))

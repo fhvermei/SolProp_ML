@@ -77,8 +77,10 @@ def train(
         )
 
         if next(model.parameters()).is_cuda or inp.cuda:
-            mask = mask.cuda()
-            targets = targets.cuda()
+            device = torch.device('mps')
+            model = model.to(device)
+            targets = targets.to(device)
+            mask = mask.to(device)
 
         # Run model
         model.zero_grad()
@@ -163,8 +165,9 @@ def run_training(inp: InputArguments, all_data: DatapointList, logger: Logger):
             initialize_weights(model, seed=initial_seed + model_i)
 
             if inp.cuda:
-                logger("Moving model to cuda")
-                model = model.cuda()
+                logger("Moving model to mps")
+                device = torch.device('mps')
+                model = model.to(device)
 
             logger(f"Save checkpoint file to {path}/model.pt")
             save_checkpoint(os.path.join(path, "model.pt"), model, inp, scaler)
@@ -445,7 +448,8 @@ def load_checkpoint(
 
     if args.cuda:
         debug("Moving model to cuda")
-        model = model.cuda()
+        device = torch.device('mps')
+        model = model.to(device)
 
     return model
 

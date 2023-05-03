@@ -78,16 +78,15 @@ class MPN(nn.Module):
         # if self.atom_messages:
         #    a2a = mol_graph.get_a2a()
         if self.cuda or next(self.parameters()).is_cuda:
+            device = torch.device("mps")
             f_atoms, f_bonds, f_mol, a2b, b2a, b2revb = (
-                f_atoms.cuda(),
-                f_bonds.cuda(),
-                f_mol.cuda(),
-                a2b.cuda(),
-                b2a.cuda(),
-                b2revb.cuda(),
+                f_atoms.to(device),
+                f_bonds.to(device),
+                f_mol.to(device),
+                a2b.to(device),
+                b2a.to(device),
+                b2revb.to(device),
             )
-            # if self.atom_messages:
-            #   a2a = a2a.cuda()
 
         # Input
         if self.atom_messages:
