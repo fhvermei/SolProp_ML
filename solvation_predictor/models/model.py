@@ -23,43 +23,24 @@ class Model(nn.Module):
         self.property = inp.property
         self.num_mols = inp.num_mols
 
-        if not self.shared:
-            # self.shared = False
-            logger(
-                f"Make {inp.num_mols} MPN models (no shared weight) with depth {inp.depth}, "
-                f"hidden size {inp.mpn_hidden}, dropout {inp.mpn_dropout}, "
-                f"activation function {inp.mpn_activation} and bias {inp.mpn_bias}"
-            )
-            # only works for 2 molecules
-            mpn = MPN(
-                depth=inp.depth,
-                hidden_size=inp.mpn_hidden,
-                dropout=inp.mpn_dropout,
-                activation=inp.mpn_activation,
-                bias=inp.mpn_bias,
-                cuda=inp.cuda,
-                atomMessage=False,
-                property=self.property,
-                aggregation=inp.aggregation,
-            )
-            self.mpns = nn.ModuleList([mpn for i in range(inp.num_mols)])
-
-        else:
-            logger(
-                f"Make MPN model with depth {inp.depth}, hidden size {inp.mpn_hidden}, dropout {inp.mpn_dropout}, "
-                f"activation function {inp.mpn_activation} and bias {inp.mpn_bias}"
-            )
-            self.mpn = MPN(
-                depth=inp.depth,
-                hidden_size=inp.mpn_hidden,
-                dropout=inp.mpn_dropout,
-                activation=inp.mpn_activation,
-                bias=inp.mpn_bias,
-                cuda=inp.cuda,
-                atomMessage=False,
-                property=self.property,
-                aggregation=inp.aggregation,
-            )
+        logger(
+            f"Make {inp.num_mols} MPN models (no shared weight) with depth {inp.depth}, "
+            f"hidden size {inp.mpn_hidden}, dropout {inp.mpn_dropout}, "
+            f"activation function {inp.mpn_activation} and bias {inp.mpn_bias}"
+        )
+        # only works for 2 molecules
+        mpn = MPN(
+            depth=inp.depth,
+            hidden_size=inp.mpn_hidden,
+            dropout=inp.mpn_dropout,
+            activation=inp.mpn_activation,
+            bias=inp.mpn_bias,
+            cuda=inp.cuda,
+            atomMessage=False,
+            property=self.property,
+            aggregation=inp.aggregation,
+        )
+        self.mpns = nn.ModuleList([mpn for i in range(inp.num_mols)])
 
         logger(
             f"Make FFN model with number of layers {inp.ffn_num_layers}, hidden size {inp.ffn_hidden}, "
@@ -80,61 +61,43 @@ class Model(nn.Module):
         Runs the Model Class on input.
 
         :param data: Parameter containing the data on which the model needs to be run.
+        :param molefracs: ??
         :return: The output of the Class Model, containing a list of property predictions.
         """
         datapoints = data.get_data()
+        tensors = []
+        molefracs = []
+        for i in range(self.num_mols):
+            tensors.append([])
 
-        if not self.shared:
-            tensors = []
-            molefracs = []
-            for i in range(self.num_mols):
-                tensors.append([])
+        for i in tensors:
+            for d in datapoints:
+                molefracs.append(d.molefracs)
+                i.append(d.get_mol_encoder()[tensors.index(i)])
 
-            for i in tensors:
-                for d in datapoints:
-                    molefracs.append(d.molefracs)
-                    i.append(d.get_mol_encoder()[tensors.index(i)])
+        mol_encodings = []
+        atoms_vecs = []
+        for i in tensors:
+            tensor = DataTensor(i, property=self.property)
+            mol_encoding, atoms_vecs = self.mpns[tensors.index(i)](tensor)
+            mol_encodings.append(mol_encoding)
 
-            mol_encodings = []
-            atoms_vecs = []
-            for i in tensors:
-                tensor = DataTensor(i, property=self.property)
-                mol_encoding, atoms_vecs = self.mpns[tensors.index(i)](tensor)
-                mol_encodings.append(mol_encoding)
+        vec = torch.empty(mol_encodings[0].size(), device="mps")
+        for i in range(1, self.num_mols):
+            print(molefracs)
+            molefrac = molefracs[0][i-1]
+            if self.cudap:
+                device = torch.device('mps')
+                molefrac = molefrac.to(device)
+            vec = torch.add(vec, torch.mul(mol_encodings[i], molefrac))
+        input = torch.cat([mol_encodings[0], vec], dim=1)
 
-            if not molefracs[0]:
-                input = torch.cat([mol_encodings[0], mol_encodings[1]], dim=1)
-            else:
-                vec = torch.empty(mol_encodings[0].size(), device="mps")
-                for i in range(1, self.num_mols):
-                    molefrac = torch.Tensor([molefracs[0][i-1]])
-                    if self.cudap:
-                        device = torch.device('mps')
-                        molefrac = molefrac.to(device)
-                    vec = torch.add(vec, torch.mul(mol_encodings[i], molefrac))
-                input = torch.cat([mol_encodings[0], vec], dim=1)
-        else:
-            tensor = []
-            for d in data.get_data():
-                for enc in d.get_mol_encoder():
-                    if enc:
-                        tensor.append(enc)
-            tensor = DataTensor(tensor, property=self.property)
-            mol_encodings, atoms_vecs = self.mpn(tensor)
-            num_mols = len(datapoints[0].get_mol())
-            sizes = list(mol_encodings.size())
-            new = sizes[0] / num_mols
-            sizes[1] = int(sizes[0] * sizes[1] / new)
-            sizes[0] = int(new)
-            input = mol_encodings.view(sizes)
-            mol_encodings, atoms_vecs = [mol_encodings], [atoms_vecs]
-
-        if self.feature_size > 0:
-            features = data.get_scaled_features()
-            features = torch.FloatTensor(features)
-            if self.cudap or next(self.parameters()).is_cuda:
-                features = features.cuda()
-            input = torch.cat([input, features], dim=1)
+        # if self.feature_size > 0:
+        #     features = data.get_scaled_features()
+        #     features = torch.FloatTensor(features)
+        #     if self.cudap or next(self.parameters()).is_cuda:
+        #         features = features.cuda()
+        #     input = torch.cat([input, features], dim=1)
 
         if self.postprocess:
             for i in range(0, len(datapoints)):
@@ -145,7 +108,7 @@ class Model(nn.Module):
 
         output = self.ffn(input)
 
-        del input
+        del input, vec, molefrac, mol_encodings, tensors, atoms_vecs
 
         for i in range(0, len(datapoints)):
             datapoints[i].scaled_predictions = output[i]

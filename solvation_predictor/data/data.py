@@ -8,6 +8,7 @@ from rdkit.Chem.Scaffolds import MurckoScaffold
 from torch import nn
 from solvation_predictor.features.molecule_encoder import MolEncoder
 from torch.utils.data.dataset import Dataset
+
 import random
 import pandas as pd
 import pickle
@@ -227,6 +228,7 @@ def read_data(inp: InputArguments, encoding='utf-8', file=None):
         if "feature" in i:
             features_count.append(header.index(i))
         if "molefrac" in i:
+            print(i)
             molefracs_count.append(header.index(i))
 
     if len(solutes_count) > 1:
@@ -253,15 +255,18 @@ def read_data(inp: InputArguments, encoding='utf-8', file=None):
             features.append(float(line[count])) \
                 if line[count] else features.append(None)
         for count in molefracs_count:
-            molefracs.append(float(line[count])) if line[count] != '' else molefracs.append(None)
+            device = torch.device('mps')
+            molefrac = torch.Tensor([float(line[count])])
+            molefrac = molefrac.to(device)
+            molefracs.append(molefrac) if line[count] != '' else molefracs.append(None)
             if line[count] != '' and len(molefracs_count) == 1:
                 molefracs.append(1. - float(line[count]))
             if line[count] != '' and len(molefracs_count) > 1:
                 raise NotImplementedError("Importing mole fractions for more than 2 solvent not possible yet.")
-        # try:
-        all_data.append(DataPoint(smiles, targets, features, molefracs, inp))
-        # except:
-        #     continue
+        try:
+            all_data.append(DataPoint(smiles, targets, features, molefracs, inp))
+        except:
+            continue
     f.close()
     return all_data
 
