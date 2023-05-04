@@ -84,11 +84,7 @@ class Model(nn.Module):
 
         vec = torch.empty(mol_encodings[0].size(), device="mps")
         for i in range(1, self.num_mols):
-            print(molefracs)
             molefrac = molefracs[0][i-1]
-            if self.cudap:
-                device = torch.device('mps')
-                molefrac = molefrac.to(device)
             vec = torch.add(vec, torch.mul(mol_encodings[i], molefrac))
         input = torch.cat([mol_encodings[0], vec], dim=1)
 
@@ -98,13 +94,13 @@ class Model(nn.Module):
         #     if self.cudap or next(self.parameters()).is_cuda:
         #         features = features.cuda()
         #     input = torch.cat([input, features], dim=1)
-
-        if self.postprocess:
-            for i in range(0, len(datapoints)):
-                datapoints[i].updated_mol_vecs = mol_encodings[i]
-
-            for i in range(0, len(datapoints)):
-                datapoints[i].updated_atom_vecs = atoms_vecs[i]
+        #
+        # if self.postprocess:
+        #     for i in range(0, len(datapoints)):
+        #         datapoints[i].updated_mol_vecs = mol_encodings[i]
+        #
+        #     for i in range(0, len(datapoints)):
+        #         datapoints[i].updated_atom_vecs = atoms_vecs[i]
 
         output = self.ffn(input)
 

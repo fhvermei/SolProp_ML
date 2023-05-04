@@ -228,7 +228,6 @@ def read_data(inp: InputArguments, encoding='utf-8', file=None):
         if "feature" in i:
             features_count.append(header.index(i))
         if "molefrac" in i:
-            print(i)
             molefracs_count.append(header.index(i))
 
     if len(solutes_count) > 1:
@@ -255,10 +254,7 @@ def read_data(inp: InputArguments, encoding='utf-8', file=None):
             features.append(float(line[count])) \
                 if line[count] else features.append(None)
         for count in molefracs_count:
-            device = torch.device('mps')
-            molefrac = torch.Tensor([float(line[count])])
-            molefrac = molefrac.to(device)
-            molefracs.append(molefrac) if line[count] != '' else molefracs.append(None)
+            molefracs.append(float(line[count])) if line[count] != '' else molefracs.append(None)
             if line[count] != '' and len(molefracs_count) == 1:
                 molefracs.append(1. - float(line[count]))
             if line[count] != '' and len(molefracs_count) > 1:
